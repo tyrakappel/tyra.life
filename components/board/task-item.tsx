@@ -17,8 +17,14 @@ type Props = {
 };
 
 export function TaskItem({ task, onToggle, onRename, onDelete, autoEdit }: Props) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: task.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -30,7 +36,6 @@ export function TaskItem({ task, onToggle, onRename, onDelete, autoEdit }: Props
       ref={setNodeRef}
       style={style}
       layout
-      layoutId={task.id}
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -38,7 +43,9 @@ export function TaskItem({ task, onToggle, onRename, onDelete, autoEdit }: Props
       className={cn(
         "group flex items-start gap-2 px-2 py-1.5 rounded-lg",
         "hover:bg-surface-hover/70 transition-colors",
-        isDragging && "opacity-50"
+        // När man drar: fadar ut original till en streckad "ghost"-platshållare
+        isDragging &&
+          "opacity-40 outline outline-2 outline-dashed outline-accent/40 bg-accent/5"
       )}
     >
       <button
@@ -80,5 +87,33 @@ export function TaskItem({ task, onToggle, onRename, onDelete, autoEdit }: Props
         <Trash2 className="size-3.5" />
       </button>
     </motion.div>
+  );
+}
+
+/**
+ * Statiskt renderad version av en task för att visas i en DragOverlay.
+ * Skippar useSortable, dnd-kit-listeners, mutation-knappar.
+ */
+export function TaskOverlayCard({ task }: { task: Task }) {
+  return (
+    <div className="card flex items-start gap-2 px-2 py-1.5 rounded-lg shadow-xl shadow-accent/30 ring-1 ring-accent/40 cursor-grabbing scale-[1.02] rotate-[0.5deg]">
+      <div className="pt-0.5 text-fg-muted">
+        <GripVertical className="size-3.5" />
+      </div>
+      <input
+        type="checkbox"
+        checked={task.completed}
+        readOnly
+        className="mt-1 size-4 rounded border-border accent-accent pointer-events-none"
+      />
+      <div
+        className={cn(
+          "text-sm leading-snug flex-1",
+          task.completed && "line-through text-fg-muted"
+        )}
+      >
+        {task.title}
+      </div>
+    </div>
   );
 }

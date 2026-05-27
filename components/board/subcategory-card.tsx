@@ -5,6 +5,8 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-
 import {
   DndContext,
   DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
   PointerSensor,
   KeyboardSensor,
   TouchSensor,
@@ -19,7 +21,7 @@ import confetti from "canvas-confetti";
 
 import type { Subcategory } from "@/lib/types";
 import { InlineEdit } from "./inline-edit";
-import { TaskItem } from "./task-item";
+import { TaskItem, TaskOverlayCard } from "./task-item";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -85,7 +87,16 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
     useSensor(KeyboardSensor)
   );
 
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const activeTask = activeTaskId
+    ? sorted.find((t) => t.id === activeTaskId)
+    : null;
+
+  const handleDragStart = (e: DragStartEvent) =>
+    setActiveTaskId(String(e.active.id));
+
   const handleDragEnd = (e: DragEndEvent) => {
+    setActiveTaskId(null);
     const { active, over } = e;
     if (!over || active.id === over.id) return;
     const ids = sorted.map((t) => t.id);
@@ -96,6 +107,8 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
     next.splice(to, 0, next.splice(from, 1)[0]);
     store.reorderTasks(sub.id, next);
   };
+
+  const handleDragCancel = () => setActiveTaskId(null);
 
   return (
     <motion.div
@@ -146,8 +159,17 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
           </button>
         </div>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={sorted.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <SortableContext
+            items={sorted.map((t) => t.id)}
+            strategy={verticalListSortingStrategy}
+          >
             <div className="space-y-0.5">
               <AnimatePresence initial={false}>
                 {sorted.map((t) => (
@@ -162,6 +184,14 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
               </AnimatePresence>
             </div>
           </SortableContext>
+          <DragOverlay
+            dropAnimation={{
+              duration: 220,
+              easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+            }}
+          >
+            {activeTask ? <TaskOverlayCard task={activeTask} /> : null}
+          </DragOverlay>
         </DndContext>
 
         {adding ? (

@@ -107,16 +107,17 @@ export function SectionColumn({ section, store }: Props) {
               onChange={(v) => store.renameSection(section.id, v)}
             />
           </div>
-          {(section.description || true) && (
-            <div className="text-xs text-fg-muted">
-              <InlineEdit
-                value={section.description || ""}
-                onChange={(v) => store.setSectionDescription(section.id, v || null)}
-                placeholder="lägg till beskrivning"
-                allowEmpty
-              />
-            </div>
-          )}
+          <div className="text-xs text-fg-muted">
+            <InlineEdit
+              value={section.description || ""}
+              onChange={(v) =>
+                store.setSectionDescription(section.id, v || null)
+              }
+              placeholder="lägg till beskrivning"
+              allowEmpty
+              multiline
+            />
+          </div>
         </div>
 
         <div className="relative">
