@@ -19,15 +19,41 @@ type Props = {
   boardId: string;
   boardName: string;
   boardEmoji: string | null;
+  editing?: boolean;
+  onEditCancel?: () => void;
+  onEditSubmit?: (newName: string) => void;
 };
 
-export function BoardSwitcher({ boardId, boardName, boardEmoji }: Props) {
+export function BoardSwitcher({
+  boardId,
+  boardName,
+  boardEmoji,
+  editing = false,
+  onEditCancel,
+  onEditSubmit,
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [boards, setBoards] = useState<BoardSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState(boardName);
+  const cancelledRef = useRef(false);
+
+  // Synka draft när vi går in i edit-läge
+  useEffect(() => {
+    if (editing) {
+      setDraft(boardName);
+      cancelledRef.current = false;
+      // Liten delay så autoFocus + select hinner
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+    }
+  }, [editing, boardName]);
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +97,45 @@ export function BoardSwitcher({ boardId, boardName, boardEmoji }: Props) {
       setCreating(false);
     }
   };
+
+  // Inline edit-läge
+  if (editing) {
+    return (
+      <div className="inline-flex items-center gap-2 -ml-2 px-2 py-1.5">
+        {boardEmoji ? (
+          <span className="text-xl leading-none">{boardEmoji}</span>
+        ) : (
+          <span className="inline-flex items-center justify-center size-6 rounded-md bg-accent/15 text-accent">
+            <LayoutGrid className="size-3.5" />
+          </span>
+        )}
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            if (cancelledRef.current) return;
+            const trimmed = draft.trim();
+            if (trimmed && trimmed !== boardName) {
+              onEditSubmit?.(trimmed);
+            } else {
+              onEditCancel?.();
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+            } else if (e.key === "Escape") {
+              cancelledRef.current = true;
+              onEditCancel?.();
+            }
+          }}
+          className="text-lg font-semibold bg-muted/40 rounded-md px-2 py-0.5 outline-none ring-2 ring-accent/40 min-w-[14rem]"
+        />
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className="relative">

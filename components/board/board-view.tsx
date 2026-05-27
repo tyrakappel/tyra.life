@@ -39,6 +39,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
+  const [editingName, setEditingName] = useState(false);
   const newSectionRef = useRef<HTMLInputElement>(null);
 
   // Preview-läge
@@ -168,12 +169,18 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
               boardId={board.id}
               boardName={board.name}
               boardEmoji={board.emoji}
+              editing={editingName}
+              onEditCancel={() => setEditingName(false)}
+              onEditSubmit={(name) => {
+                store.renameBoard(name);
+                setEditingName(false);
+              }}
             />
             <BoardActionsMenu
               boardId={board.id}
               boardName={board.name}
               boardEmoji={board.emoji}
-              onRename={(name) => store.renameBoard(name)}
+              onRequestRename={() => setEditingName(true)}
               onChangeEmoji={(emoji) => {
                 api
                   .updateBoard(board.id, { emoji })

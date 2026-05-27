@@ -11,7 +11,7 @@ type Props = {
   boardId: string;
   boardName: string;
   boardEmoji: string | null;
-  onRename: (name: string) => void;
+  onRequestRename: () => void;
   onChangeEmoji: (emoji: string | null) => void;
 };
 
@@ -19,7 +19,7 @@ export function BoardActionsMenu({
   boardId,
   boardName,
   boardEmoji,
-  onRename,
+  onRequestRename,
   onChangeEmoji,
 }: Props) {
   const router = useRouter();
@@ -38,8 +38,7 @@ export function BoardActionsMenu({
 
   const handleRename = () => {
     setOpen(false);
-    const name = window.prompt("Nytt namn på boarden:", boardName);
-    if (name && name.trim() && name.trim() !== boardName) onRename(name.trim());
+    onRequestRename();
   };
 
   const handleChangeEmoji = () => {
@@ -120,7 +119,7 @@ export function BoardActionsMenu({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 top-full mt-2 w-60 card p-1.5 z-50 shadow-card-hover space-y-0.5"
+            className="absolute left-0 top-full mt-2 min-w-[15rem] card p-1.5 z-50 shadow-card-hover space-y-0.5"
           >
             <Action
               icon={<Pencil className="size-4" />}
@@ -185,7 +184,7 @@ function Action({
       >
         {icon}
       </span>
-      <span className="flex-1 text-left font-medium">
+      <span className="flex-1 text-left font-medium whitespace-nowrap">
         {busy ? "Arbetar..." : label}
       </span>
     </button>
