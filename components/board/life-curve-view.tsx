@@ -22,7 +22,7 @@ type Props = {
 };
 
 const SAVE_DEBOUNCE_MS = 500;
-const PX_PER_YEAR = 60; // hur brett varje år ska vara
+const MIN_PX_PER_YEAR = 36; // minsta bredd per år innan chartens scrollar
 
 export function LifeCurveView({ boardId }: Props) {
   const [data, setData] = useState<LifeCurveData>({
@@ -154,7 +154,8 @@ type ChartProps = {
   saving: boolean;
 };
 
-const PADDING = { top: 40, right: 32, bottom: 56, left: 64 };
+const PADDING = { top: 32, right: 32, bottom: 56, left: 64 };
+const MIN_SVG_HEIGHT = 360;
 
 function Chart({
   birthYear,
@@ -166,9 +167,26 @@ function Chart({
   const scrollRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [size, setSize] = useState({ width: 1024, height: 480 });
 
-  // Click-drag panning på chart-bakgrunden
   useBoardPan(scrollRef);
+
+  // Mät container för responsiv bredd + höjd
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (rect) {
+        setSize({
+          width: Math.max(400, rect.width),
+          height: Math.max(MIN_SVG_HEIGHT, rect.height),
+        });
+      }
+    });
+    ro.observe(scrollRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   const ensuredValues = useMemo(
     () => ensureValuesLength(values, birthYear),
@@ -177,11 +195,15 @@ function Chart({
 
   const age = currentAge(birthYear);
 
-  // Bredd skalas så varje år får PX_PER_YEAR pixlar
-  const chartW = Math.max(age, 1) * PX_PER_YEAR;
-  const svgWidth = chartW + PADDING.left + PADDING.right;
-  const height = 480;
-  const chartH = height - PADDING.top - PADDING.bottom;
+  // Bredd: fyll containern men minst MIN_PX_PER_YEAR per år
+  const minWidth =
+    Math.max(age, 1) * MIN_PX_PER_YEAR + PADDING.left + PADDING.right;
+  const svgWidth = Math.max(size.width, minWidth);
+  const chartW = svgWidth - PADDING.left - PADDING.right;
+
+  // Höjd: fyll containern, men minst MIN_SVG_HEIGHT
+  const svgHeight = size.height;
+  const chartH = svgHeight - PADDING.top - PADDING.bottom;
 
   const xForAge = (a: number) => PADDING.left + (a / Math.max(age, 1)) * chartW;
   const yForValue = (v: number) =>
@@ -310,7 +332,7 @@ function Chart({
         <svg
           ref={svgRef}
           width={svgWidth}
-          height={height}
+          height={svgHeight}
           className="block touch-none select-none"
         >
           <defs>
@@ -412,50 +434,70 @@ function Chart({
           {/* Points */}
           {points.map((p) => {
             const isActive = activeIndex === p.index;
+            const isHovered = hoveredIndex === p.index || isActive;
+            const r = isActive ? 11 : isHovered ? 9 : 7;
             return (
               <g key={p.index}>
-                {/* Hover-area (större för bättre touch) */}
+                {/* Hover-area (större för bättre touch & hover-detection) */}
                 <circle
                   cx={p.x}
                   cy={p.y}
-                  r={14}
+                  r={16}
                   fill="transparent"
                   data-pan-skip
                   onPointerDown={(e) => startDrag(e, p.index)}
+                  onPointerEnter={() => setHoveredIndex(p.index)}
+                  onPointerLeave={() =>
+                    setHoveredIndex((cur) => (cur === p.index ? null : cur))
+                  }
                   className="cursor-grab active:cursor-grabbing"
                   style={{ touchAction: "none" }}
                 />
+                {/* Glow på hover/active */}
+                {isHovered && (
+                  <motion.circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={r + 6}
+                    fill="var(--color-accent)"
+                    opacity={0.15}
+                    initial={false}
+                    animate={{ cx: p.x, cy: p.y, r: r + 6 }}
+                    transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ pointerEvents: "none" }}
+                  />
+                )}
                 {/* Visual point */}
                 <motion.circle
                   cx={p.x}
                   cy={p.y}
-                  r={isActive ? 7 : 4}
+                  r={r}
                   fill="var(--color-accent)"
                   stroke="var(--color-surface)"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   initial={false}
-                  animate={{ cx: p.x, cy: p.y, r: isActive ? 7 : 4 }}
+                  animate={{ cx: p.x, cy: p.y, r }}
                   transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
                   style={{ pointerEvents: "none" }}
                 />
-                {/* Value tooltip när active */}
-                {isActive && (
+                {/* Tooltip vid hover eller drag */}
+                {isHovered && (
                   <g style={{ pointerEvents: "none" }}>
                     <rect
-                      x={p.x - 28}
-                      y={p.y - 36}
-                      width={56}
-                      height={22}
-                      rx={6}
+                      x={p.x - 36}
+                      y={p.y - 44}
+                      width={72}
+                      height={26}
+                      rx={8}
                       fill="var(--color-fg)"
-                      opacity={0.92}
+                      opacity={0.95}
                     />
                     <text
                       x={p.x}
-                      y={p.y - 21}
+                      y={p.y - 26}
                       textAnchor="middle"
-                      fontSize={11}
-                      fontWeight={600}
+                      fontSize={12}
+                      fontWeight={700}
                       className="fill-bg tabular-nums"
                     >
                       {p.value > 0 ? "+" : ""}
