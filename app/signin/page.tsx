@@ -69,8 +69,8 @@ export default async function SignInPage({
               </div>
             ) : (
               <>
-                <h1 className="font-bold text-2xl mb-2">Välkommen</h1>
-                <p className="text-fg-muted text-sm mb-8">
+                <h1 className="font-bold text-2xl mb-2 text-center">Välkommen</h1>
+                <p className="text-fg-muted text-sm mb-8 text-center">
                   Logga in med Google för att fortsätta
                 </p>
 

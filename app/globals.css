@@ -142,32 +142,7 @@
     color-mix(in oklab, var(--section-tint, var(--color-border)) 55%, white);
 }
 
-[data-color-theme="spectrum"] .section-column-watermark {
-  display: block;
-  position: absolute;
-  bottom: 0.5rem;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 1.875rem;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: color-mix(
-    in oklab,
-    var(--section-tint, var(--color-fg-muted)) 70%,
-    transparent
-  );
-  opacity: 0.18;
-  pointer-events: none;
-  user-select: none;
-  text-transform: lowercase;
-  z-index: 0;
-  word-break: break-word;
-  padding: 0 1rem;
-}
-
-/* I övriga teman visas inte watermarken och kolumnen får ingen tint */
+/* Watermark borttagen — ingen text i botten av kolumnen */
 .section-column-watermark {
   display: none;
 }

@@ -201,10 +201,6 @@ export function SectionColumn({ section, index, store }: Props) {
         )}
       </div>
 
-      {/* Watermark — endast synlig i spectrum-temat (CSS styr) */}
-      <span className="section-column-watermark" aria-hidden>
-        {section.title}
-      </span>
     </motion.div>
   );
 }
