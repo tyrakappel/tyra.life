@@ -76,20 +76,15 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
     ? board.sections.find((s) => s.id === activeId)
     : null;
 
-  // Auto-snapshot: vid mount + var 5:e min (server rate-limit'ar till max 1/30min)
+  // Auto-snapshot: debounced ~2s efter senaste ändring av board-state.
+  // Endpoint:en upsertar — det finns alltid bara EN auto-snapshot per board.
   useEffect(() => {
-    if (previewSnapshot) return; // ingen auto-snapshot under förhandsgranskning
-    const trigger = () => {
+    if (previewSnapshot) return; // pausa under förhandsgranskning
+    const timer = setTimeout(() => {
       api.autoSnapshot(board.id).catch(() => {});
-    };
-    // En kort delay efter mount så vi inte snapshotar mid-load
-    const initial = setTimeout(trigger, 2000);
-    const interval = setInterval(trigger, 5 * 60 * 1000);
-    return () => {
-      clearTimeout(initial);
-      clearInterval(interval);
-    };
-  }, [board.id, previewSnapshot]);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [board, previewSnapshot]);
 
   // Keyboard horizontal scroll (bara live-läge)
   useEffect(() => {
