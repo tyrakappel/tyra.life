@@ -24,6 +24,7 @@ import { snapshotToBoard } from "@/lib/snapshot-to-board";
 import type { SnapshotData } from "@/lib/snapshot";
 import { SectionColumn } from "./section-column";
 import { useHorizontalScroll } from "./use-horizontal-scroll";
+import { useBoardPan } from "./use-board-pan";
 import { VersionMenu } from "./version-menu";
 import { PreviewBanner } from "./preview-banner";
 import { ReadOnlyBoard } from "./read-only-board";
@@ -55,6 +56,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const [restoring, setRestoring] = useState(false);
 
   const scrollRef = useHorizontalScroll<HTMLDivElement>();
+  useBoardPan(scrollRef);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -237,7 +239,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
       ) : (
         <div
           ref={scrollRef}
-          className="flex-1 overflow-x-auto overflow-y-hidden scroll-x scrollbar-thin"
+          className="flex-1 overflow-x-auto overflow-y-hidden scroll-x scrollbar-thin cursor-grab"
         >
           <DndContext
             sensors={sensors}
