@@ -16,6 +16,7 @@ import {
   type LifeCurveData,
 } from "@/lib/life-curve";
 import { useBoardPan } from "./use-board-pan";
+import { SECTION_PALETTE } from "@/lib/section-palette";
 
 type Props = {
   boardId: string;
@@ -192,7 +193,7 @@ type ChartProps = {
   saving: boolean;
 };
 
-const PADDING = { top: 48, right: 32, bottom: 56, left: 64 };
+const PADDING = { top: 56, right: 32, bottom: 56, left: 64 };
 const MIN_SVG_HEIGHT = 360;
 
 function Chart({
@@ -394,26 +395,36 @@ function Chart({
             </linearGradient>
           </defs>
 
-          {/* Fas-block: zebra-bakgrund + skarpa skiljelinjer + etikett */}
+          {/* Fas-block: pastell-bakgrunder + skarpa skiljelinjer + etikett */}
           {phases.map((phase, i) => {
             const x = xForAge(phase.start);
             const w = xForAge(phase.end) - x;
-            const isEven = i % 2 === 0;
             const blockSize = phase.end - phase.start;
             const label =
               blockSize === 1
                 ? `${phase.start} år`
                 : `${phase.start}–${phase.end - 1} år`;
+            const color = SECTION_PALETTE[i % SECTION_PALETTE.length];
             return (
               <g key={`phase-${i}`}>
-                {/* Alternerande bakgrund */}
+                {/* Pastell-tonad bakgrund */}
                 <rect
                   x={x}
                   y={PADDING.top}
                   width={w}
                   height={chartH}
-                  fill="var(--color-fg)"
-                  fillOpacity={isEven ? 0.025 : 0}
+                  fill={color}
+                  fillOpacity={0.14}
+                />
+                {/* Liten färgmarkör ovanför chart (matchar fas-bgn) */}
+                <rect
+                  x={x + 4}
+                  y={PADDING.top - 26}
+                  width={Math.max(w - 8, 4)}
+                  height={3}
+                  rx={1.5}
+                  fill={color}
+                  fillOpacity={0.85}
                 />
                 {/* Skarp skiljelinje (inte före första) */}
                 {i > 0 && (
@@ -423,19 +434,19 @@ function Chart({
                     y1={PADDING.top}
                     y2={PADDING.top + chartH}
                     stroke="currentColor"
-                    strokeOpacity={0.22}
+                    strokeOpacity={0.18}
                     className="text-fg-muted"
                   />
                 )}
                 {/* Etikett ovanför chart */}
                 <text
                   x={x + w / 2}
-                  y={PADDING.top - 16}
+                  y={PADDING.top - 12}
                   textAnchor="middle"
                   fontSize={10}
-                  fontWeight={600}
+                  fontWeight={700}
                   className="fill-fg-muted tabular-nums uppercase tracking-wider"
-                  fillOpacity={0.7}
+                  fillOpacity={0.75}
                 >
                   {label}
                 </text>
