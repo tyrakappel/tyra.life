@@ -130,4 +130,18 @@ export const api = {
       `/api/boards/${boardId}/auto-snapshot`,
       { method: "POST" }
     ),
+
+  // LifeCurve
+  getLifeCurve: (boardId: string) =>
+    req<{ lifeCurve: { birthYear: number | null; values: number[] } }>(
+      `/api/boards/${boardId}/life-curve`
+    ),
+  putLifeCurve: (
+    boardId: string,
+    data: { birthYear?: number | null; values: number[] }
+  ) =>
+    req<{ lifeCurve: { birthYear: number | null; values: number[] } }>(
+      `/api/boards/${boardId}/life-curve`,
+      { method: "PUT", body: JSON.stringify(data) }
+    ),
 };

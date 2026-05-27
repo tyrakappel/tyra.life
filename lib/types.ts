@@ -40,6 +40,10 @@ export type Board = {
   emoji: string | null;
   order: number;
   sections: Section[];
+  lifeCurve?: {
+    birthYear: number | null;
+    values: number[];
+  } | null;
   createdAt: string | Date;
   updatedAt: string | Date;
 };

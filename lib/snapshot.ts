@@ -8,6 +8,10 @@ import { ORDER_STEP } from "./ordering";
 export type SnapshotData = {
   name: string;
   emoji: string | null;
+  lifeCurve: {
+    birthYear: number | null;
+    values: number[];
+  } | null;
   sections: {
     title: string;
     description: string | null;
@@ -32,6 +36,7 @@ export async function captureBoardSnapshot(boardId: string): Promise<SnapshotDat
   const board = await prisma.board.findUnique({
     where: { id: boardId },
     include: {
+      lifeCurve: true,
       sections: {
         orderBy: { order: "asc" },
         include: {
@@ -50,6 +55,14 @@ export async function captureBoardSnapshot(boardId: string): Promise<SnapshotDat
   return {
     name: board.name,
     emoji: board.emoji,
+    lifeCurve: board.lifeCurve
+      ? {
+          birthYear: board.lifeCurve.birthYear,
+          values: Array.isArray(board.lifeCurve.values)
+            ? (board.lifeCurve.values as number[])
+            : [],
+        }
+      : null,
     sections: board.sections.map((s) => ({
       title: s.title,
       description: s.description,
@@ -97,6 +110,24 @@ export async function restoreBoardFromSnapshot(
       where: { id: boardId },
       data: { name: data.name, emoji: data.emoji },
     });
+
+    // LifeCurve — upsert eller delete
+    if (data.lifeCurve) {
+      await tx.lifeCurve.upsert({
+        where: { boardId },
+        create: {
+          boardId,
+          birthYear: data.lifeCurve.birthYear,
+          values: data.lifeCurve.values as never,
+        },
+        update: {
+          birthYear: data.lifeCurve.birthYear,
+          values: data.lifeCurve.values as never,
+        },
+      });
+    } else {
+      await tx.lifeCurve.deleteMany({ where: { boardId } });
+    }
 
     // Rensa allt befintligt innehåll (cascade till subcategories + tasks)
     await tx.section.deleteMany({ where: { boardId } });

@@ -30,6 +30,8 @@ import { ReadOnlyBoard } from "./read-only-board";
 import { ColorThemeMenu } from "../color-theme-menu";
 import { BoardSwitcher } from "./board-switcher";
 import { BoardActionsMenu } from "./board-actions-menu";
+import { ViewToggle, type ViewMode } from "./view-toggle";
+import { LifeCurveView } from "./life-curve-view";
 
 export function BoardView({ initialBoard }: { initialBoard: Board }) {
   // Skapa store en gång per initialBoard.id
@@ -40,6 +42,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("plan");
   const newSectionRef = useRef<HTMLInputElement>(null);
 
   // Preview-läge
@@ -188,6 +191,9 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
                   .catch(console.error);
               }}
             />
+            <div className="ml-3">
+              <ViewToggle view={viewMode} onChange={setViewMode} />
+            </div>
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
@@ -226,6 +232,8 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
       {/* Board */}
       {previewBoard ? (
         <ReadOnlyBoard board={previewBoard} />
+      ) : viewMode === "curve" ? (
+        <LifeCurveView boardId={board.id} />
       ) : (
         <div
           ref={scrollRef}

@@ -87,8 +87,26 @@ model Board {
   user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   sections  Section[]
   snapshots BoardSnapshot[]
+  lifeCurve LifeCurve?
 
   @@index([userId, order])
+}
+
+// ============================================================
+// LifeCurve — användarens emotionella livskurva för boarden.
+// En per board. Punkterna ligger var 0.5 år från 0 till nuvarande
+// ålder, värden mellan -1 och 1 där 0 är neutralt.
+// ============================================================
+
+model LifeCurve {
+  id        String   @id @default(cuid())
+  boardId   String   @unique
+  birthYear Int?
+  values    Json     // number[] — index*0.5 = ålder i år, value -1..1
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
 }
 
 // ============================================================

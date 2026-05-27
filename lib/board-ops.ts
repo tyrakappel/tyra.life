@@ -38,6 +38,17 @@ export async function duplicateBoard(
     },
   });
 
+  // LifeCurve följer med kopian
+  if (data.lifeCurve) {
+    await prisma.lifeCurve.create({
+      data: {
+        boardId: newBoard.id,
+        birthYear: data.lifeCurve.birthYear,
+        values: data.lifeCurve.values as never,
+      },
+    });
+  }
+
   // Återskapa sections → subcategories → tasks via nested writes
   for (const [si, s] of data.sections.entries()) {
     await prisma.section.create({
