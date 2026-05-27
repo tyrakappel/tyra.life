@@ -14,6 +14,11 @@ import { useEffect, type RefObject } from "react";
  *
  * Vertikal scroll inom kolumner låter vi vara — pan här är bara horisontell.
  */
+/**
+ * Element som ALDRIG triggar pan. .card är medvetet inte med eftersom
+ * användaren vill kunna pana även genom att hålla på en kolumn (subkategorier
+ * inom är .card-element men det är OK — knappar/inputs filtreras separat).
+ */
 const NO_PAN_SELECTOR = [
   "button",
   "a",
@@ -21,11 +26,10 @@ const NO_PAN_SELECTOR = [
   "textarea",
   '[contenteditable="true"]',
   '[role="button"]',
-  ".card",
   "[data-pan-skip]",
 ].join(",");
 
-const PAN_THRESHOLD_PX = 4;
+const PAN_THRESHOLD_PX = 5;
 
 export function useBoardPan<T extends HTMLElement>(ref: RefObject<T | null>) {
   useEffect(() => {
@@ -36,10 +40,10 @@ export function useBoardPan<T extends HTMLElement>(ref: RefObject<T | null>) {
     let armed = false;
     let pointerId = 0;
     let startX = 0;
+    let startY = 0;
     let startScrollLeft = 0;
 
     const onDown = (e: PointerEvent) => {
-      // Vänster mus / primärtouch
       if (e.button !== 0) return;
       const target = e.target as HTMLElement | null;
       if (!target) return;
@@ -48,6 +52,7 @@ export function useBoardPan<T extends HTMLElement>(ref: RefObject<T | null>) {
       armed = true;
       pointerId = e.pointerId;
       startX = e.clientX;
+      startY = e.clientY;
       startScrollLeft = el.scrollLeft;
     };
 
@@ -55,9 +60,16 @@ export function useBoardPan<T extends HTMLElement>(ref: RefObject<T | null>) {
       if (!armed && !panning) return;
       if (e.pointerId !== pointerId) return;
       const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
 
       if (!panning) {
+        // Aktivera pan endast om horisontell rörelse dominerar — annars
+        // får native vertikal scroll inom kolumner ta över.
         if (Math.abs(dx) < PAN_THRESHOLD_PX) return;
+        if (Math.abs(dy) > Math.abs(dx)) {
+          armed = false;
+          return;
+        }
         panning = true;
         el.style.cursor = "grabbing";
         el.style.userSelect = "none";
