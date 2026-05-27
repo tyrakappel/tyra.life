@@ -35,16 +35,16 @@ export default async function SignInPage({
       <Suspense fallback={null}>
         <div className="w-full max-w-sm">
           {/* Wordmark */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-accent to-accent/60 shadow-card mb-3">
-              <Sparkles className="size-7 text-accent-fg" strokeWidth={2.2} />
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-accent shadow-lg shadow-accent/25 mb-4">
+              <Sparkles className="size-8 text-accent-fg" strokeWidth={2.4} />
             </div>
-            <div className="text-5xl tracking-tight select-none leading-none font-semibold">
+            <div className="text-5xl tracking-tight select-none leading-none font-bold">
               <span className="text-fg">Tyra</span>
               <span className="text-accent">Life</span>
             </div>
             <p
-              className="text-fg-muted text-sm mt-1.5 select-none italic"
+              className="text-fg-muted text-sm mt-2 select-none italic"
               style={{
                 fontFamily: 'Georgia, "Times New Roman", serif',
                 letterSpacing: "0.02em",
@@ -55,11 +55,13 @@ export default async function SignInPage({
           </div>
 
           {/* Card */}
-          <div className="card p-8">
+          <div className="bg-surface border border-border rounded-2xl p-8 shadow-sm">
             {params.check === "email" ? (
-              <div className="text-center">
-                <Mail className="size-8 text-accent mx-auto mb-3" />
-                <h1 className="font-bold text-2xl mb-1">Kolla din mail</h1>
+              <div className="text-center py-2">
+                <div className="inline-flex items-center justify-center size-12 rounded-full bg-accent/15 mb-4">
+                  <Mail className="size-6 text-accent" />
+                </div>
+                <h1 className="font-bold text-2xl mb-2">Kolla din mail</h1>
                 <p className="text-fg-muted text-sm">
                   Vi har skickat en magic link till dig. Klicka på länken för
                   att logga in.
@@ -67,7 +69,7 @@ export default async function SignInPage({
               </div>
             ) : (
               <>
-                <h1 className="font-bold text-2xl mb-1">Välkommen</h1>
+                <h1 className="font-bold text-2xl mb-2">Välkommen</h1>
                 <p className="text-fg-muted text-sm mb-8">
                   Logga in med Google för att fortsätta
                 </p>
@@ -89,7 +91,7 @@ export default async function SignInPage({
                   >
                     <button
                       type="submit"
-                      className="flex items-center justify-center gap-3 w-full bg-accent hover:opacity-90 active:scale-[0.98] text-accent-fg font-semibold py-3.5 px-5 rounded-full transition-all duration-150 ease-snap"
+                      className="flex items-center justify-center gap-3 w-full bg-accent hover:bg-accent/90 active:bg-accent/80 text-accent-fg font-bold text-base py-4 px-5 rounded-full shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30 transition-all duration-150 ease-snap"
                     >
                       <GoogleIcon />
                       Fortsätt med Google
@@ -100,9 +102,9 @@ export default async function SignInPage({
                 {hasResend && (
                   <>
                     {hasGoogle && (
-                      <div className="my-5 flex items-center gap-3 text-xs text-fg-muted">
+                      <div className="my-6 flex items-center gap-3 text-xs text-fg-muted/70">
                         <div className="flex-1 h-px bg-border" />
-                        <span>eller</span>
+                        <span className="uppercase tracking-wider">eller</span>
                         <div className="flex-1 h-px bg-border" />
                       </div>
                     )}
@@ -114,18 +116,18 @@ export default async function SignInPage({
                           redirectTo: params.callbackUrl || "/",
                         });
                       }}
-                      className="space-y-2"
+                      className="space-y-2.5"
                     >
                       <input
                         name="email"
                         type="email"
                         required
                         placeholder="din@email.se"
-                        className="w-full bg-muted/40 border border-border rounded-full px-4 py-2.5 outline-none focus:ring-2 focus:ring-accent/40 transition-all text-sm"
+                        className="w-full bg-muted/50 border border-border rounded-full px-5 py-3 outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/40 transition-all text-sm"
                       />
                       <button
                         type="submit"
-                        className="flex items-center justify-center w-full border border-border text-fg-muted hover:text-fg hover:border-fg-muted/40 py-2.5 px-5 rounded-full text-sm transition-colors duration-150"
+                        className="flex items-center justify-center w-full border border-border hover:border-fg-muted/40 text-fg-muted hover:text-fg py-3 px-5 rounded-full text-sm font-medium transition-colors duration-150"
                       >
                         Skicka magic link
                       </button>
@@ -147,15 +149,15 @@ export default async function SignInPage({
                   </div>
                 )}
 
-                <p className="text-center text-xs text-fg-muted mt-6">
+                <p className="text-center text-xs text-fg-muted/70 mt-8">
                   Personligt utrymme
                 </p>
               </>
             )}
           </div>
 
-          {/* Footer */}
-          <p className="text-center text-fg-muted/60 text-xs mt-8">
+          {/* Version */}
+          <p className="text-center text-fg-muted/50 text-xs mt-8 select-none">
             v{APP_VERSION}
           </p>
         </div>
