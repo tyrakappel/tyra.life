@@ -208,8 +208,11 @@ function Chart({
   const xForAge = (a: number) => PADDING.left + (a / Math.max(age, 1)) * chartW;
   const yForValue = (v: number) =>
     PADDING.top + chartH / 2 - (v / VALUE_MAX) * (chartH / 2);
-  const valueForY = (y: number) =>
-    clampValue(((PADDING.top + chartH / 2 - y) / (chartH / 2)) * VALUE_MAX);
+  // Snappa till hela heltal (-10..10) under drag — magnetisk känsla
+  const valueForY = (y: number) => {
+    const raw = ((PADDING.top + chartH / 2 - y) / (chartH / 2)) * VALUE_MAX;
+    return clampValue(Math.round(raw));
+  };
 
   const points = ensuredValues.map((v, i) => ({
     index: i,
