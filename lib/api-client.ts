@@ -103,4 +103,9 @@ export const api = {
     req(`/api/boards/${boardId}/snapshots/${snapshotId}`, { method: "DELETE" }),
   restoreSnapshot: (boardId: string, snapshotId: string) =>
     req(`/api/boards/${boardId}/snapshots/${snapshotId}/restore`, { method: "POST" }),
+  autoSnapshot: (boardId: string) =>
+    req<{ snapshot?: { id: string; createdAt: string }; skipped?: boolean; reason?: string }>(
+      `/api/boards/${boardId}/auto-snapshot`,
+      { method: "POST" }
+    ),
 };

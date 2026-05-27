@@ -96,17 +96,14 @@ export function VersionMenu({ boardId, previewSnapshotId, onPreview }: Props) {
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg transition-all duration-150 ease-snap",
+          "inline-flex items-center justify-center size-9 rounded-lg transition-all duration-150 ease-snap",
           "text-fg-muted hover:text-fg hover:bg-surface-hover active:scale-95",
           open && "bg-surface-hover text-fg"
         )}
-        aria-label="Versionshistorik"
-        title="Versionshistorik"
+        aria-label="Versioner"
+        title="Versioner"
       >
         <History className="size-[18px]" />
-        <span className="text-xs font-medium tabular-nums hidden sm:inline">
-          Versioner
-        </span>
       </button>
 
       <AnimatePresence>

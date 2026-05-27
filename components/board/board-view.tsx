@@ -29,6 +29,7 @@ import { useHorizontalScroll } from "./use-horizontal-scroll";
 import { VersionMenu } from "./version-menu";
 import { PreviewBanner } from "./preview-banner";
 import { ReadOnlyBoard } from "./read-only-board";
+import { ColorThemeMenu } from "../color-theme-menu";
 
 export function BoardView({ initialBoard }: { initialBoard: Board }) {
   // Skapa store en gång per initialBoard.id
@@ -75,6 +76,21 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const activeSection = activeId
     ? board.sections.find((s) => s.id === activeId)
     : null;
+
+  // Auto-snapshot: vid mount + var 5:e min (server rate-limit'ar till max 1/30min)
+  useEffect(() => {
+    if (previewSnapshot) return; // ingen auto-snapshot under förhandsgranskning
+    const trigger = () => {
+      api.autoSnapshot(board.id).catch(() => {});
+    };
+    // En kort delay efter mount så vi inte snapshotar mid-load
+    const initial = setTimeout(trigger, 2000);
+    const interval = setInterval(trigger, 5 * 60 * 1000);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
+  }, [board.id, previewSnapshot]);
 
   // Keyboard horizontal scroll (bara live-läge)
   useEffect(() => {
@@ -155,24 +171,23 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             />
           )}
         </h1>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/60">
           <VersionMenu
             boardId={board.id}
             previewSnapshotId={previewSnapshot?.id ?? null}
             onPreview={handlePreview}
           />
-          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-muted/40 border border-border/60">
-            <ThemeToggle />
-            <div className="w-px h-5 bg-border/60" />
-            <a
-              href="/api/auth/signout"
-              className="inline-flex items-center justify-center size-9 rounded-lg text-fg-muted hover:text-danger hover:bg-surface-hover active:scale-95 transition-all duration-150 ease-snap"
-              aria-label="Logga ut"
-              title="Logga ut"
-            >
-              <LogOut className="size-[18px]" />
-            </a>
-          </div>
+          <ColorThemeMenu />
+          <ThemeToggle />
+          <div className="w-px h-5 bg-border/60 mx-0.5" />
+          <a
+            href="/api/auth/signout"
+            className="inline-flex items-center justify-center size-9 rounded-lg text-fg-muted hover:text-danger hover:bg-surface-hover active:scale-95 transition-all duration-150 ease-snap"
+            aria-label="Logga ut"
+            title="Logga ut"
+          >
+            <LogOut className="size-[18px]" />
+          </a>
         </div>
       </header>
 

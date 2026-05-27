@@ -20,6 +20,20 @@ export default function RootLayout({
     <html lang="sv" suppressHydrationWarning>
       <head>
         <meta name="app-version" content={APP_VERSION} />
+        {/* Sätt data-color-theme INNAN React hydrerar för att undvika FOUC */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var t = localStorage.getItem('tyra-color-theme');
+                if (t !== 'indigo' && t !== 'emerald' && t !== 'rose') t = 'indigo';
+                document.documentElement.setAttribute('data-color-theme', t);
+              } catch (e) {
+                document.documentElement.setAttribute('data-color-theme', 'indigo');
+              }
+            `,
+          }}
+        />
       </head>
       <body>
         <Providers>{children}</Providers>
