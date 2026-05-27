@@ -1,0 +1,137 @@
+// Tyra Life — Prisma schema
+//
+// Hierarki: User -> Board -> Section -> Subcategory -> Task
+// `order` är Float så vi kan göra fraktionell omsortering (lexorank-stil)
+// utan att skriva om hela listan vid drag-n-drop.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// NextAuth (Auth.js v5) — Prisma adapter
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  boards   Board[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// Life Plan
+// ============================================================
+
+model Board {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  emoji     String?
+  order     Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections Section[]
+
+  @@index([userId, order])
+}
+
+model Section {
+  id          String   @id @default(cuid())
+  boardId     String
+  title       String
+  description String?
+  color       String?  // hex eller tailwind-key, frivilligt
+  order       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  board         Board         @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  subcategories Subcategory[]
+
+  @@index([boardId, order])
+}
+
+model Subcategory {
+  id          String   @id @default(cuid())
+  sectionId   String
+  title       String
+  description String?
+  order       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@index([sectionId, order])
+}
+
+model Task {
+  id            String    @id @default(cuid())
+  subcategoryId String
+  title         String
+  description   String?
+  completed     Boolean   @default(false)
+  completedAt   DateTime?
+  order         Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  subcategory Subcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+
+  @@index([subcategoryId, completed, order])
+}
