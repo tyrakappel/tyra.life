@@ -22,7 +22,16 @@ type Props = {
 };
 
 const SAVE_DEBOUNCE_MS = 500;
-const MIN_PX_PER_YEAR = 36; // minsta bredd per år innan chartens scrollar
+
+/**
+ * Hur många år som syns på en gång — beroende på skärmbredd.
+ * Resterande år nås via horisontell scroll / drag-pan.
+ */
+function getVisibleYears(width: number): number {
+  if (width >= 1280) return 10;
+  if (width >= 1024) return 5;
+  return 3;
+}
 
 export function LifeCurveView({ boardId }: Props) {
   const [data, setData] = useState<LifeCurveData>({
@@ -195,10 +204,17 @@ function Chart({
 
   const age = currentAge(birthYear);
 
-  // Bredd: fyll containern men minst MIN_PX_PER_YEAR per år
-  const minWidth =
-    Math.max(age, 1) * MIN_PX_PER_YEAR + PADDING.left + PADDING.right;
-  const svgWidth = Math.max(size.width, minWidth);
+  // Px per år bestäms av hur många år som ska få plats på skärmen.
+  // Total chart-bredd = age × pxPerYear. Mindre än containerbredden om
+  // användaren är yngre än visibleYears, större och scrollbar om äldre.
+  const visibleYears = getVisibleYears(size.width);
+  const innerContainerWidth = size.width - PADDING.left - PADDING.right;
+  const pxPerYear = innerContainerWidth / visibleYears;
+  const totalChartWidth = Math.max(age, 1) * pxPerYear;
+  const svgWidth = Math.max(
+    size.width,
+    totalChartWidth + PADDING.left + PADDING.right
+  );
   const chartW = svgWidth - PADDING.left - PADDING.right;
 
   // Höjd: fyll containern, men minst MIN_SVG_HEIGHT
