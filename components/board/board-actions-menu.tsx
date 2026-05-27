@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, Pencil, Copy, Trash2, SmilePlus } from "lucide-react";
+import { MoreHorizontal, Pencil, CopyPlus, Trash2, SmilePlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
@@ -132,7 +132,7 @@ export function BoardActionsMenu({
               onClick={handleChangeEmoji}
             />
             <Action
-              icon={<Copy className="size-4" />}
+              icon={<CopyPlus className="size-4" />}
               label="Duplicera board"
               onClick={handleDuplicate}
               busy={busy === "duplicate"}
