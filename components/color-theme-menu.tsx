@@ -26,14 +26,14 @@ export function ColorThemeMenu() {
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "inline-flex items-center justify-center size-9 rounded-lg transition-all duration-150 ease-snap",
+          "inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg transition-all duration-150 ease-snap text-sm font-medium",
           "text-fg-muted hover:text-fg hover:bg-surface-hover active:scale-95",
           open && "bg-surface-hover text-fg"
         )}
         aria-label="Färgtema"
-        title="Färgtema"
       >
         <Palette className="size-[18px]" />
+        <span>Färgtema</span>
       </button>
 
       <AnimatePresence>

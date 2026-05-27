@@ -170,21 +170,22 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             />
           )}
         </h1>
-        <div className="ml-auto flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/60">
-          <VersionMenu
-            boardId={board.id}
-            previewSnapshotId={previewSnapshot?.id ?? null}
-            onPreview={handlePreview}
-          />
-          <ColorThemeMenu />
-          <div className="w-px h-5 bg-border/60 mx-0.5" />
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/60">
+            <VersionMenu
+              boardId={board.id}
+              previewSnapshotId={previewSnapshot?.id ?? null}
+              onPreview={handlePreview}
+            />
+            <ColorThemeMenu />
+          </div>
           <a
             href="/api/auth/signout"
-            className="inline-flex items-center justify-center size-9 rounded-lg text-fg-muted hover:text-danger hover:bg-surface-hover active:scale-95 transition-all duration-150 ease-snap"
+            className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl bg-muted/40 border border-border/60 text-fg-muted hover:text-danger hover:bg-surface-hover hover:border-danger/30 active:scale-95 transition-all duration-150 ease-snap text-sm font-medium"
             aria-label="Logga ut"
-            title="Logga ut"
           >
             <LogOut className="size-[18px]" />
+            <span>Logga ut</span>
           </a>
         </div>
       </header>
