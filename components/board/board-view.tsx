@@ -23,12 +23,12 @@ import { api } from "@/lib/api-client";
 import { snapshotToBoard } from "@/lib/snapshot-to-board";
 import type { SnapshotData } from "@/lib/snapshot";
 import { SectionColumn } from "./section-column";
-import { InlineEdit } from "./inline-edit";
 import { useHorizontalScroll } from "./use-horizontal-scroll";
 import { VersionMenu } from "./version-menu";
 import { PreviewBanner } from "./preview-banner";
 import { ReadOnlyBoard } from "./read-only-board";
 import { ColorThemeMenu } from "../color-theme-menu";
+import { BoardSwitcher } from "./board-switcher";
 
 export function BoardView({ initialBoard }: { initialBoard: Board }) {
   // Skapa store en gång per initialBoard.id
@@ -159,17 +159,27 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
     <div className="h-screen flex flex-col bg-bg">
       {/* Header */}
       <header className="flex-shrink-0 px-5 py-3 flex items-center gap-3 border-b border-border/60">
-        <span className="text-xl">{board.emoji}</span>
-        <h1 className="text-lg font-semibold">
-          {previewSnapshot ? (
-            <span>{previewBoard?.name ?? board.name}</span>
-          ) : (
-            <InlineEdit
-              value={board.name}
-              onChange={(v) => store.renameBoard(v)}
-            />
-          )}
-        </h1>
+        {previewSnapshot ? (
+          <div className="flex items-center gap-2 -ml-2 px-2 py-1.5">
+            {board.emoji && <span className="text-xl leading-none">{board.emoji}</span>}
+            <span className="text-lg font-semibold">
+              {previewBoard?.name ?? board.name}
+            </span>
+          </div>
+        ) : (
+          <BoardSwitcher
+            boardId={board.id}
+            boardName={board.name}
+            boardEmoji={board.emoji}
+            onRename={(name) => store.renameBoard(name)}
+            onChangeEmoji={(emoji) => {
+              // Optimistic local update + API
+              api.updateBoard(board.id, { emoji }).catch(console.error);
+              // Lokalt — vi har ingen store-action för emoji än, så reload board state
+              window.location.reload();
+            }}
+          />
+        )}
         <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/60">
             <VersionMenu
