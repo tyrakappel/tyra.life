@@ -129,7 +129,7 @@
   border: 1px solid
     color-mix(in oklab, var(--section-tint, var(--color-border)) 45%, white);
   position: relative;
-  overflow: hidden;
+  /* overflow tas bort så att dropdowns inte klipps */
 }
 
 [data-color-theme="spectrum"] .section-column-header {

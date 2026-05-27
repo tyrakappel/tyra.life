@@ -132,13 +132,17 @@ export function SectionColumn({ section, index, store }: Props) {
           <button
             onClick={() => setMenuOpen((v) => !v)}
             onBlur={() => setTimeout(() => setMenuOpen(false), 150)}
-            className="btn-ghost size-7 px-0 text-fg-muted"
+            className={cn(
+              "inline-flex items-center justify-center size-7 rounded-md transition-colors outline-none",
+              "text-fg-muted/70 hover:text-fg hover:bg-black/5 dark:hover:bg-white/10",
+              menuOpen && "bg-black/5 dark:bg-white/10 text-fg"
+            )}
             aria-label="Meny"
           >
             <MoreHorizontal className="size-4" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 card p-1 w-44 z-20 animate-slide-up">
+            <div className="absolute right-0 top-full mt-1 card p-1.5 w-48 z-50 animate-slide-up">
               <button
                 onMouseDown={() => {
                   if (confirm(`Ta bort "${section.title}" och allt inom?`)) {
@@ -146,9 +150,9 @@ export function SectionColumn({ section, index, store }: Props) {
                   }
                   setMenuOpen(false);
                 }}
-                className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-surface-hover text-danger flex items-center gap-2"
+                className="w-full text-left px-2 py-2 text-sm rounded-lg hover:bg-danger/10 text-danger flex items-center gap-2.5 transition-colors"
               >
-                <Trash2 className="size-3.5" />
+                <Trash2 className="size-3.5 shrink-0" />
                 Ta bort kolumn
               </button>
             </div>

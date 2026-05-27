@@ -120,27 +120,27 @@ export function BoardActionsMenu({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 top-full mt-2 w-56 card p-1.5 z-30 shadow-card-hover"
+            className="absolute left-0 top-full mt-2 w-60 card p-1.5 z-50 shadow-card-hover space-y-0.5"
           >
             <Action
-              icon={<Pencil className="size-3.5" />}
+              icon={<Pencil className="size-4" />}
               label="Byt namn"
               onClick={handleRename}
             />
             <Action
-              icon={<SmilePlus className="size-3.5" />}
+              icon={<SmilePlus className="size-4" />}
               label={boardEmoji ? "Byt emoji" : "Lägg till emoji"}
               onClick={handleChangeEmoji}
             />
             <Action
-              icon={<Copy className="size-3.5" />}
+              icon={<Copy className="size-4" />}
               label="Duplicera board"
               onClick={handleDuplicate}
               busy={busy === "duplicate"}
             />
-            <div className="h-px bg-border my-1" />
+            <div className="h-px bg-border my-1.5" />
             <Action
-              icon={<Trash2 className="size-3.5" />}
+              icon={<Trash2 className="size-4" />}
               label="Ta bort board"
               onClick={handleDelete}
               busy={busy === "delete"}
@@ -171,7 +171,7 @@ function Action({
       onClick={onClick}
       disabled={busy}
       className={cn(
-        "flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50",
+        "flex items-center gap-3 w-full px-2.5 py-2 rounded-lg text-sm transition-colors disabled:opacity-50",
         danger
           ? "text-danger hover:bg-danger/10"
           : "text-fg hover:bg-surface-hover"
@@ -179,13 +179,15 @@ function Action({
     >
       <span
         className={cn(
-          "inline-flex items-center justify-center size-5",
-          danger ? "text-danger" : "text-fg-muted"
+          "inline-flex items-center justify-center size-7 rounded-md shrink-0",
+          danger ? "text-danger bg-danger/10" : "text-fg-muted bg-muted/60"
         )}
       >
         {icon}
       </span>
-      <span className="flex-1 text-left">{busy ? "Arbetar..." : label}</span>
+      <span className="flex-1 text-left font-medium">
+        {busy ? "Arbetar..." : label}
+      </span>
     </button>
   );
 }
