@@ -407,7 +407,7 @@ function Chart({
                   fontSize={9}
                   className="fill-fg-muted/60 tabular-nums"
                 >
-                  {m.age}
+                  {m.age} år
                 </text>
               </g>
             );

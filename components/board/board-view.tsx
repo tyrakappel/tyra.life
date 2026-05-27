@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   DndContext,
   DragEndEvent,
@@ -43,7 +44,21 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
   const [editingName, setEditingName] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("plan");
+
+  // ViewMode synkad mot URL ?view=plan|curve så reload behåller flik
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlView = searchParams.get("view");
+  const viewMode: ViewMode = urlView === "curve" ? "curve" : "plan";
+  const setViewMode = (next: ViewMode) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "plan") params.delete("view");
+    else params.set("view", next);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
   const newSectionRef = useRef<HTMLInputElement>(null);
 
   // Preview-läge
