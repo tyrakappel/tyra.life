@@ -233,14 +233,17 @@ function Chart({
   );
 
   const age = currentAge(birthYear);
+  // Chart sträcker sig till slutet av innevarande livsår (age + 1).
+  // Detta gör att den pågående året visas som ett helt block + man får
+  // en punkt på age + 0.5 att betygsätta innevarande halvår med.
+  const chartMaxAge = age + 1;
 
   // Px per år bestäms av hur många år som ska få plats på skärmen.
-  // Total chart-bredd = age × pxPerYear. Mindre än containerbredden om
-  // användaren är yngre än visibleYears, större och scrollbar om äldre.
+  // Total chart-bredd = chartMaxAge × pxPerYear.
   const visibleYears = getVisibleYears(size.width);
   const innerContainerWidth = size.width - PADDING.left - PADDING.right;
   const pxPerYear = innerContainerWidth / visibleYears;
-  const totalChartWidth = Math.max(age, 1) * pxPerYear;
+  const totalChartWidth = Math.max(chartMaxAge, 1) * pxPerYear;
   const svgWidth = Math.max(
     size.width,
     totalChartWidth + PADDING.left + PADDING.right
@@ -251,7 +254,8 @@ function Chart({
   const svgHeight = size.height;
   const chartH = svgHeight - PADDING.top - PADDING.bottom;
 
-  const xForAge = (a: number) => PADDING.left + (a / Math.max(age, 1)) * chartW;
+  const xForAge = (a: number) =>
+    PADDING.left + (a / Math.max(chartMaxAge, 1)) * chartW;
   const yForValue = (v: number) =>
     PADDING.top + chartH / 2 - (v / VALUE_MAX) * (chartH / 2);
   // Snappa till hela heltal (-10..10) under drag — magnetisk känsla
@@ -327,17 +331,17 @@ function Chart({
     window.addEventListener("pointercancel", onUp);
   };
 
-  // X-axis: varje år
+  // X-axis: varje år (inkl. slutet av innevarande år)
   const yearMarks = useMemo(() => {
     const marks: { age: number; year: number }[] = [];
-    for (let a = 0; a <= age; a += 1) {
+    for (let a = 0; a <= chartMaxAge; a += 1) {
       marks.push({ age: a, year: birthYear + a });
     }
     return marks;
-  }, [age, birthYear]);
+  }, [chartMaxAge, birthYear]);
 
-  // Fas-block (livsfaser)
-  const phases = useMemo(() => generatePhases(age), [age]);
+  // Fas-block (livsfaser) — sträcker sig till slutet av innevarande år
+  const phases = useMemo(() => generatePhases(chartMaxAge), [chartMaxAge]);
 
   // Y-axis tick-värden
   const yTicks = [10, 5, 0, -5, -10];

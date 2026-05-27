@@ -23,7 +23,11 @@ export function currentAge(birthYear: number, now: Date = new Date()): number {
 }
 
 /**
- * Säkerställer att values-arrayen har rätt längd för given ålder.
+ * Säkerställer att values-arrayen täcker HELA pågående livsår.
+ * För en 13-åring ger detta punkter 0.0, 0.5, …, 13.0, 13.5 (28 st).
+ * Det innebär att man kan sätta status för innevarande år oavsett
+ * när på året man föddes.
+ *
  * - Förkortar inte (bevarar historik)
  * - Förlängs med 0 om för kort
  */
@@ -33,7 +37,8 @@ export function ensureValuesLength(
 ): number[] {
   if (birthYear == null) return values;
   const age = currentAge(birthYear);
-  const expectedLength = ageToIndex(age) + 1;
+  // Inkluderar midpunkt på pågående år (age + 0.5)
+  const expectedLength = ageToIndex(age) + 2;
   if (values.length >= expectedLength) return values;
   const extended = [...values];
   while (extended.length < expectedLength) extended.push(0);
