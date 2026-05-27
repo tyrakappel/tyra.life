@@ -29,6 +29,7 @@ import { PreviewBanner } from "./preview-banner";
 import { ReadOnlyBoard } from "./read-only-board";
 import { ColorThemeMenu } from "../color-theme-menu";
 import { BoardSwitcher } from "./board-switcher";
+import { BoardActionsMenu } from "./board-actions-menu";
 
 export function BoardView({ initialBoard }: { initialBoard: Board }) {
   // Skapa store en gång per initialBoard.id
@@ -162,18 +163,25 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             </span>
           </div>
         ) : (
-          <BoardSwitcher
-            boardId={board.id}
-            boardName={board.name}
-            boardEmoji={board.emoji}
-            onRename={(name) => store.renameBoard(name)}
-            onChangeEmoji={(emoji) => {
-              // Optimistic local update + API
-              api.updateBoard(board.id, { emoji }).catch(console.error);
-              // Lokalt — vi har ingen store-action för emoji än, så reload board state
-              window.location.reload();
-            }}
-          />
+          <div className="flex items-center gap-0.5">
+            <BoardSwitcher
+              boardId={board.id}
+              boardName={board.name}
+              boardEmoji={board.emoji}
+            />
+            <BoardActionsMenu
+              boardId={board.id}
+              boardName={board.name}
+              boardEmoji={board.emoji}
+              onRename={(name) => store.renameBoard(name)}
+              onChangeEmoji={(emoji) => {
+                api
+                  .updateBoard(board.id, { emoji })
+                  .then(() => window.location.reload())
+                  .catch(console.error);
+              }}
+            />
+          </div>
         )}
         <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/60">
