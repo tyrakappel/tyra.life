@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { api } from "@/lib/api-client";
 import {
   POINT_INTERVAL_YEARS,
+  VALUE_MIN,
+  VALUE_MAX,
   ageToIndex,
   indexToAge,
   ensureValuesLength,
@@ -13,12 +15,14 @@ import {
   currentAge,
   type LifeCurveData,
 } from "@/lib/life-curve";
+import { useBoardPan } from "./use-board-pan";
 
 type Props = {
   boardId: string;
 };
 
 const SAVE_DEBOUNCE_MS = 500;
+const PX_PER_YEAR = 60; // hur brett varje år ska vara
 
 export function LifeCurveView({ boardId }: Props) {
   const [data, setData] = useState<LifeCurveData>({
@@ -30,7 +34,6 @@ export function LifeCurveView({ boardId }: Props) {
   const saveTimer = useRef<number | null>(null);
   const pendingSaveRef = useRef<LifeCurveData | null>(null);
 
-  // Initial load
   useEffect(() => {
     api
       .getLifeCurve(boardId)
@@ -41,7 +44,6 @@ export function LifeCurveView({ boardId }: Props) {
       .finally(() => setLoaded(true));
   }, [boardId]);
 
-  // Debounced save
   const scheduleSave = (next: LifeCurveData) => {
     pendingSaveRef.current = next;
     if (saveTimer.current != null) window.clearTimeout(saveTimer.current);
@@ -152,7 +154,7 @@ type ChartProps = {
   saving: boolean;
 };
 
-const PADDING = { top: 40, right: 32, bottom: 50, left: 56 };
+const PADDING = { top: 40, right: 32, bottom: 56, left: 64 };
 
 function Chart({
   birthYear,
@@ -161,38 +163,31 @@ function Chart({
   onChangeBirthYear,
   saving,
 }: ChartProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const [width, setWidth] = useState(800);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  // Säkerställ att values är tillräckligt långt för nuvarande ålder
+  // Click-drag panning på chart-bakgrunden
+  useBoardPan(scrollRef);
+
   const ensuredValues = useMemo(
     () => ensureValuesLength(values, birthYear),
     [values, birthYear]
   );
 
-  // ResizeObserver för bredd
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (w && w > 200) setWidth(w);
-    });
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
   const age = currentAge(birthYear);
+
+  // Bredd skalas så varje år får PX_PER_YEAR pixlar
+  const chartW = Math.max(age, 1) * PX_PER_YEAR;
+  const svgWidth = chartW + PADDING.left + PADDING.right;
   const height = 480;
-  const chartW = Math.max(400, width - PADDING.left - PADDING.right);
   const chartH = height - PADDING.top - PADDING.bottom;
 
   const xForAge = (a: number) => PADDING.left + (a / Math.max(age, 1)) * chartW;
   const yForValue = (v: number) =>
-    PADDING.top + chartH / 2 - v * (chartH / 2);
+    PADDING.top + chartH / 2 - (v / VALUE_MAX) * (chartH / 2);
   const valueForY = (y: number) =>
-    clampValue(((PADDING.top + chartH / 2 - y) / (chartH / 2)) as number);
+    clampValue(((PADDING.top + chartH / 2 - y) / (chartH / 2)) * VALUE_MAX);
 
   const points = ensuredValues.map((v, i) => ({
     index: i,
@@ -202,7 +197,6 @@ function Chart({
     y: yForValue(v),
   }));
 
-  // SVG path för smooth curve (Catmull-Rom → cubic Bezier)
   const curvePath = useMemo(() => {
     if (points.length === 0) return "";
     if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
@@ -224,7 +218,6 @@ function Chart({
     return d;
   }, [points]);
 
-  // Filled area under curve (för soft gradient)
   const areaPath = useMemo(() => {
     if (points.length < 2) return "";
     const centerY = PADDING.top + chartH / 2;
@@ -233,10 +226,11 @@ function Chart({
     } ${centerY} Z`;
   }, [curvePath, points, chartH]);
 
-  // Drag handling
+  // Drag på enskild punkt
   const startDrag = (e: React.PointerEvent<SVGCircleElement>, index: number) => {
     e.preventDefault();
     e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     const circle = e.currentTarget;
     circle.setPointerCapture(e.pointerId);
     setActiveIndex(index);
@@ -262,21 +256,20 @@ function Chart({
     window.addEventListener("pointercancel", onUp);
   };
 
-  // Year labels på x-axeln (var 5:e år)
+  // X-axis: varje år
   const yearMarks = useMemo(() => {
     const marks: { age: number; year: number }[] = [];
-    for (let a = 0; a <= age; a += 5) {
+    for (let a = 0; a <= age; a += 1) {
       marks.push({ age: a, year: birthYear + a });
-    }
-    if (marks[marks.length - 1]?.age !== age) {
-      marks.push({ age, year: birthYear + age });
     }
     return marks;
   }, [age, birthYear]);
 
+  // Y-axis tick-värden
+  const yTicks = [10, 5, 0, -5, -10];
+
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      {/* Header rad */}
       <div className="flex items-center gap-4 px-6 py-3 border-b border-border/60">
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="size-4 text-fg-muted" />
@@ -310,16 +303,15 @@ function Chart({
         </div>
       </div>
 
-      {/* Chart */}
       <div
-        ref={containerRef}
-        className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin"
+        ref={scrollRef}
+        className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin cursor-grab"
       >
         <svg
           ref={svgRef}
-          width={Math.max(width, 400)}
+          width={svgWidth}
           height={height}
-          className="block touch-none"
+          className="block touch-none select-none"
         >
           <defs>
             <linearGradient id="lc-area" x1="0" y1="0" x2="0" y2="1">
@@ -327,14 +319,10 @@ function Chart({
               <stop offset="50%" stopColor="var(--color-accent)" stopOpacity="0.05" />
               <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
             </linearGradient>
-            <linearGradient id="lc-area-neg" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stopColor="var(--color-danger)" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="var(--color-danger)" stopOpacity="0" />
-            </linearGradient>
           </defs>
 
           {/* Y-axis labels + grid */}
-          {[1, 0.5, 0, -0.5, -1].map((v) => {
+          {yTicks.map((v) => {
             const y = yForValue(v);
             const isCenter = v === 0;
             return (
@@ -364,50 +352,47 @@ function Chart({
             );
           })}
 
-          {/* X-axis year marks */}
-          {yearMarks.map((m, i) => {
+          {/* X-axis: ett vertikalstreck + label per år */}
+          {yearMarks.map((m) => {
             const x = xForAge(m.age);
+            const isMajor = m.age % 5 === 0;
             return (
-              <g key={i}>
+              <g key={m.age}>
                 <line
                   x1={x}
                   x2={x}
                   y1={PADDING.top}
                   y2={PADDING.top + chartH}
                   stroke="currentColor"
-                  strokeOpacity={0.06}
+                  strokeOpacity={isMajor ? 0.1 : 0.04}
                   className="text-fg-muted"
                 />
                 <text
                   x={x}
-                  y={PADDING.top + chartH + 20}
+                  y={PADDING.top + chartH + 18}
                   textAnchor="middle"
-                  fontSize={11}
+                  fontSize={isMajor ? 11 : 10}
+                  fontWeight={isMajor ? 600 : 400}
                   className="fill-fg-muted tabular-nums"
+                  fillOpacity={isMajor ? 0.9 : 0.55}
                 >
                   {m.year}
                 </text>
                 <text
                   x={x}
-                  y={PADDING.top + chartH + 36}
+                  y={PADDING.top + chartH + 32}
                   textAnchor="middle"
                   fontSize={9}
                   className="fill-fg-muted/60 tabular-nums"
                 >
-                  {m.age} år
+                  {m.age}
                 </text>
               </g>
             );
           })}
 
           {/* Filled area */}
-          {areaPath && (
-            <path
-              d={areaPath}
-              fill="url(#lc-area)"
-              style={{ transition: "d 200ms ease-out" }}
-            />
-          )}
+          {areaPath && <path d={areaPath} fill="url(#lc-area)" />}
 
           {/* Smooth curve */}
           {curvePath && (
@@ -435,6 +420,7 @@ function Chart({
                   cy={p.y}
                   r={14}
                   fill="transparent"
+                  data-pan-skip
                   onPointerDown={(e) => startDrag(e, p.index)}
                   className="cursor-grab active:cursor-grabbing"
                   style={{ touchAction: "none" }}
@@ -473,7 +459,7 @@ function Chart({
                       className="fill-bg tabular-nums"
                     >
                       {p.value > 0 ? "+" : ""}
-                      {p.value.toFixed(2)}
+                      {p.value.toFixed(1)}
                     </text>
                   </g>
                 )}
@@ -483,11 +469,10 @@ function Chart({
         </svg>
       </div>
 
-      {/* Hjälptext */}
       <div className="flex-shrink-0 px-6 py-2 text-xs text-fg-muted border-t border-border/60 flex items-center justify-between">
         <span>
-          Dra punkterna upp för bra perioder, ner för sämre. Värden går från
-          −1 (lågpunkt) till +1 (toppen).
+          Dra punkterna upp för bra perioder, ner för sämre. Skala −10 till +10.
+          Håll och dra bakgrunden för att panorera.
         </span>
         <span className="text-fg-muted/60">
           Punkt var {POINT_INTERVAL_YEARS * 12} mån

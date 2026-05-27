@@ -40,9 +40,12 @@ export function ensureValuesLength(
   return extended;
 }
 
+export const VALUE_MIN = -10;
+export const VALUE_MAX = 10;
+
 /**
- * Klampa ett värde till [-1, 1].
+ * Klampa ett värde till [VALUE_MIN, VALUE_MAX].
  */
 export function clampValue(v: number): number {
-  return Math.max(-1, Math.min(1, v));
+  return Math.max(VALUE_MIN, Math.min(VALUE_MAX, v));
 }

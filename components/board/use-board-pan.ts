@@ -22,6 +22,7 @@ const NO_PAN_SELECTOR = [
   '[contenteditable="true"]',
   '[role="button"]',
   ".card",
+  "[data-pan-skip]",
 ].join(",");
 
 const PAN_THRESHOLD_PX = 4;

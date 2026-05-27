@@ -44,7 +44,7 @@ export const PUT = handler(async (req: NextRequest, ctx: Ctx) => {
   const values: number[] = Array.isArray(body.values)
     ? body.values
         .map((v: unknown) => (typeof v === "number" ? v : 0))
-        .map((v: number) => Math.max(-1, Math.min(1, v)))
+        .map((v: number) => Math.max(-10, Math.min(10, v)))
     : [];
 
   const data: Parameters<typeof prisma.lifeCurve.upsert>[0]["create"] = {
