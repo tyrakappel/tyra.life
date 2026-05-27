@@ -481,30 +481,45 @@ function Chart({
                   style={{ pointerEvents: "none" }}
                 />
                 {/* Tooltip vid hover eller drag */}
-                {isHovered && (
-                  <g style={{ pointerEvents: "none" }}>
-                    <rect
-                      x={p.x - 36}
-                      y={p.y - 44}
-                      width={72}
-                      height={26}
-                      rx={8}
-                      fill="var(--color-fg)"
-                      opacity={0.95}
-                    />
-                    <text
-                      x={p.x}
-                      y={p.y - 26}
-                      textAnchor="middle"
-                      fontSize={12}
-                      fontWeight={700}
-                      className="fill-bg tabular-nums"
-                    >
-                      {p.value > 0 ? "+" : ""}
-                      {p.value.toFixed(1)}
-                    </text>
-                  </g>
-                )}
+                {isHovered && (() => {
+                  const year = birthYear + Math.floor(p.age);
+                  const ageLabel = p.age.toLocaleString("sv-SE");
+                  return (
+                    <g style={{ pointerEvents: "none" }}>
+                      <rect
+                        x={p.x - 60}
+                        y={p.y - 56}
+                        width={120}
+                        height={42}
+                        rx={10}
+                        fill="var(--color-fg)"
+                        opacity={0.78}
+                      />
+                      <text
+                        x={p.x}
+                        y={p.y - 38}
+                        textAnchor="middle"
+                        fontSize={14}
+                        fontWeight={700}
+                        className="fill-bg tabular-nums"
+                      >
+                        {p.value > 0 ? "+" : ""}
+                        {p.value.toFixed(1)}
+                      </text>
+                      <text
+                        x={p.x}
+                        y={p.y - 22}
+                        textAnchor="middle"
+                        fontSize={10}
+                        fontWeight={500}
+                        className="fill-bg tabular-nums"
+                        fillOpacity={0.7}
+                      >
+                        {year} · {ageLabel} år
+                      </text>
+                    </g>
+                  );
+                })()}
               </g>
             );
           })}
