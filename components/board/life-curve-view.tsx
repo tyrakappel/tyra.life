@@ -484,6 +484,15 @@ function Chart({
                 {isHovered && (() => {
                   const year = birthYear + Math.floor(p.age);
                   const ageLabel = p.age.toLocaleString("sv-SE");
+                  const rounded = Math.round(p.value * 10) / 10;
+                  const valueLabel =
+                    rounded === 0
+                      ? "0,0"
+                      : (rounded > 0 ? "+" : "") +
+                        rounded.toLocaleString("sv-SE", {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        });
                   return (
                     <g style={{ pointerEvents: "none" }}>
                       <rect
@@ -503,8 +512,7 @@ function Chart({
                         fontWeight={700}
                         className="fill-bg tabular-nums"
                       >
-                        {p.value > 0 ? "+" : ""}
-                        {p.value.toFixed(1)}
+                        {valueLabel}
                       </text>
                       <text
                         x={p.x}
