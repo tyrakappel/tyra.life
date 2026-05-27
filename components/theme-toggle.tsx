@@ -10,7 +10,7 @@ export function ThemeToggle() {
 
   useEffect(() => setMounted(true), []);
 
-  if (!mounted) return <div className="size-8" />;
+  if (!mounted) return <div className="size-9" />;
 
   const cycle = () => {
     if (theme === "system") setTheme("light");
@@ -19,15 +19,17 @@ export function ThemeToggle() {
   };
 
   const Icon = theme === "system" ? Monitor : resolvedTheme === "dark" ? Moon : Sun;
+  const label =
+    theme === "system" ? "System" : resolvedTheme === "dark" ? "Mörkt" : "Ljust";
 
   return (
     <button
       onClick={cycle}
-      className="btn-ghost size-8 px-0"
-      aria-label={`Theme: ${theme}`}
-      title={`Theme: ${theme}`}
+      className="inline-flex items-center justify-center size-9 rounded-lg text-fg-muted hover:text-fg hover:bg-surface-hover active:scale-95 transition-all duration-150 ease-snap"
+      aria-label={`Tema: ${label}`}
+      title={`Tema: ${label} (klick för att byta)`}
     >
-      <Icon className="size-4" />
+      <Icon className="size-[18px]" />
     </button>
   );
 }

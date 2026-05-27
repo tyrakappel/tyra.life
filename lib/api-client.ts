@@ -70,4 +70,37 @@ export const api = {
   // Board
   updateBoard: (id: string, data: { name?: string; emoji?: string | null }) =>
     req(`/api/boards/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+
+  // Snapshots
+  listSnapshots: (boardId: string) =>
+    req<{
+      snapshots: {
+        id: string;
+        label: string | null;
+        reason: string | null;
+        createdAt: string;
+      }[];
+    }>(`/api/boards/${boardId}/snapshots`),
+  createSnapshot: (boardId: string, label?: string) =>
+    req<{ snapshot: { id: string; label: string | null; reason: string | null; createdAt: string } }>(
+      `/api/boards/${boardId}/snapshots`,
+      {
+        method: "POST",
+        body: JSON.stringify({ label, reason: "manuell" }),
+      }
+    ),
+  getSnapshot: (boardId: string, snapshotId: string) =>
+    req<{
+      snapshot: {
+        id: string;
+        label: string | null;
+        reason: string | null;
+        createdAt: string;
+        data: import("./snapshot").SnapshotData;
+      };
+    }>(`/api/boards/${boardId}/snapshots/${snapshotId}`),
+  deleteSnapshot: (boardId: string, snapshotId: string) =>
+    req(`/api/boards/${boardId}/snapshots/${snapshotId}`, { method: "DELETE" }),
+  restoreSnapshot: (boardId: string, snapshotId: string) =>
+    req(`/api/boards/${boardId}/snapshots/${snapshotId}/restore`, { method: "POST" }),
 };
