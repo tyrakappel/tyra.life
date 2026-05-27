@@ -36,7 +36,7 @@ export default async function SignInPage({
         <div className="w-full max-w-sm">
           {/* Wordmark */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-accent shadow-lg shadow-accent/25 mb-4">
+            <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-accent shadow-xl shadow-accent/50 ring-1 ring-accent/30 mb-4">
               <Sparkles className="size-8 text-accent-fg" strokeWidth={2.4} />
             </div>
             <div className="text-5xl tracking-tight select-none leading-none font-bold">
@@ -91,7 +91,7 @@ export default async function SignInPage({
                   >
                     <button
                       type="submit"
-                      className="flex items-center justify-center gap-3 w-full bg-accent hover:bg-accent/90 active:bg-accent/80 text-accent-fg font-bold text-base py-4 px-5 rounded-full shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30 transition-all duration-150 ease-snap"
+                      className="flex items-center justify-center gap-3 w-full bg-accent hover:bg-accent/90 active:bg-accent/80 text-accent-fg font-bold text-base py-4 px-5 rounded-full shadow-lg shadow-accent/40 hover:shadow-xl hover:shadow-accent/50 transition-all duration-150 ease-snap"
                     >
                       <GoogleIcon />
                       Fortsätt med Google

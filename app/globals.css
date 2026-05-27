@@ -39,15 +39,15 @@
 }
 
 .dark {
-  --color-bg: rgb(15 15 18);
-  --color-surface: rgb(24 24 28);
-  --color-surface-hover: rgb(32 32 38);
-  --color-border: rgb(42 42 50);
-  --color-muted: rgb(35 35 42);
-  --color-fg: rgb(244 244 248);
-  --color-fg-muted: rgb(161 161 170);
-  --color-accent: rgb(129 140 248);
-  --color-accent-fg: rgb(17 17 22);
+  --color-bg: rgb(12 10 22);
+  --color-surface: rgb(22 19 38);
+  --color-surface-hover: rgb(32 27 54);
+  --color-border: rgb(56 48 90);
+  --color-muted: rgb(38 32 60);
+  --color-fg: rgb(245 243 255);
+  --color-fg-muted: rgb(172 168 200);
+  --color-accent: rgb(168 145 255);
+  --color-accent-fg: rgb(17 13 30);
   --color-success: rgb(74 222 128);
   --color-danger: rgb(248 113 113);
 }
