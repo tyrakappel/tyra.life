@@ -1,26 +1,27 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Helvetica Neue", sans-serif;
   --font-display: var(--font-sans);
 
-  --color-bg: rgb(250 250 250);
-  --color-surface: rgb(255 255 255);
-  --color-surface-hover: rgb(245 245 247);
-  --color-border: rgb(226 226 230);
-  --color-muted: rgb(240 240 244);
-  --color-fg: rgb(24 24 27);
-  --color-fg-muted: rgb(113 113 122);
-  --color-accent: rgb(99 102 241);
-  --color-accent-fg: rgb(255 255 255);
-  --color-success: rgb(34 197 94);
-  --color-danger: rgb(239 68 68);
+  /* Defaults — överskuggas av [data-color-theme] nedan.
+     Här ligger indigo (mörk midnatt) som standard så det fungerar
+     även innan klient-JS satt attributet. */
+  --color-bg: rgb(12 10 22);
+  --color-surface: rgb(22 19 38);
+  --color-surface-hover: rgb(32 27 54);
+  --color-border: rgb(56 48 90);
+  --color-muted: rgb(38 32 60);
+  --color-fg: rgb(245 243 255);
+  --color-fg-muted: rgb(172 168 200);
+  --color-accent: rgb(168 145 255);
+  --color-accent-fg: rgb(17 13 30);
+  --color-success: rgb(74 222 128);
+  --color-danger: rgb(248 113 113);
 
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
-  --shadow-card-hover: 0 2px 6px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.08);
-  --shadow-card-dark: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+  --shadow-card-hover: 0 4px 12px rgb(0 0 0 / 0.4), 0 2px 6px rgb(0 0 0 / 0.3);
+  --shadow-card-dark: var(--shadow-card);
 
   --ease-snap: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -38,7 +39,12 @@
   }
 }
 
-.dark {
+/* =============================================
+   TEMA 1: INDIGO — Mörk midnatt
+   Djup violet-svart natt-bakgrund, ljus violet accent.
+   Mood: fokuserad, professionell, kvällsläge.
+   ============================================= */
+[data-color-theme="indigo"] {
   --color-bg: rgb(12 10 22);
   --color-surface: rgb(22 19 38);
   --color-surface-hover: rgb(32 27 54);
@@ -50,49 +56,59 @@
   --color-accent-fg: rgb(17 13 30);
   --color-success: rgb(74 222 128);
   --color-danger: rgb(248 113 113);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 6px 18px rgb(20 10 50 / 0.5), 0 2px 6px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
 }
 
-/* =========================================
-   Färgteman — accent + bg-tint per tema
-   ========================================= */
-
-/* INDIGO (default light) — redan satt via :root */
+/* =============================================
+   TEMA 2: EMERALD — Ljus daggryning
+   Ren off-white bakgrund, djup emerald accent.
+   Mood: fräsch, luftig, produktivt arbetsläge.
+   ============================================= */
 [data-color-theme="emerald"] {
-  --color-accent: rgb(16 185 129);
+  --color-bg: rgb(246 250 247);
+  --color-surface: rgb(255 255 255);
+  --color-surface-hover: rgb(241 247 243);
+  --color-border: rgb(218 230 222);
+  --color-muted: rgb(232 242 235);
+  --color-fg: rgb(20 36 26);
+  --color-fg-muted: rgb(82 102 90);
+  --color-accent: rgb(5 150 105);
   --color-accent-fg: rgb(255 255 255);
-}
-[data-color-theme="rose"] {
-  --color-accent: rgb(236 72 153);
-  --color-accent-fg: rgb(255 255 255);
+  --color-success: rgb(22 163 74);
+  --color-danger: rgb(220 38 38);
+
+  --shadow-card: 0 1px 2px rgb(10 60 35 / 0.04), 0 2px 8px rgb(10 60 35 / 0.06);
+  --shadow-card-hover: 0 4px 14px rgb(10 60 35 / 0.08), 0 8px 24px rgb(10 60 35 / 0.1);
+
+  color-scheme: light;
 }
 
-/* Dark-mode-varianter (högre specificitet pga .dark + attribut) */
-.dark[data-color-theme="indigo"] {
-  --color-bg: rgb(12 10 22);
-  --color-surface: rgb(22 19 38);
-  --color-surface-hover: rgb(32 27 54);
-  --color-border: rgb(56 48 90);
-  --color-muted: rgb(38 32 60);
-  --color-accent: rgb(168 145 255);
-  --color-accent-fg: rgb(17 13 30);
-}
-.dark[data-color-theme="emerald"] {
-  --color-bg: rgb(10 18 16);
-  --color-surface: rgb(18 30 26);
-  --color-surface-hover: rgb(24 40 34);
-  --color-border: rgb(40 70 60);
-  --color-muted: rgb(28 48 42);
-  --color-accent: rgb(52 211 153);
-  --color-accent-fg: rgb(2 28 19);
-}
-.dark[data-color-theme="rose"] {
-  --color-bg: rgb(20 10 18);
-  --color-surface: rgb(32 18 28);
-  --color-surface-hover: rgb(44 26 38);
-  --color-border: rgb(80 42 62);
-  --color-muted: rgb(50 26 40);
+/* =============================================
+   TEMA 3: ROSE — Mörk skymning
+   Varm aubergine-bakgrund, ljus coral accent.
+   Mood: varm, kreativ, energisk.
+   ============================================= */
+[data-color-theme="rose"] {
+  --color-bg: rgb(20 12 20);
+  --color-surface: rgb(34 20 30);
+  --color-surface-hover: rgb(46 28 40);
+  --color-border: rgb(80 44 64);
+  --color-muted: rgb(52 28 42);
+  --color-fg: rgb(252 240 246);
+  --color-fg-muted: rgb(196 170 184);
   --color-accent: rgb(244 114 182);
   --color-accent-fg: rgb(40 7 22);
+  --color-success: rgb(74 222 128);
+  --color-danger: rgb(248 113 113);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 6px rgb(40 10 25 / 0.35);
+  --shadow-card-hover: 0 6px 20px rgb(60 10 35 / 0.45), 0 2px 8px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
 }
 
 @layer base {
@@ -106,7 +122,8 @@
     color: var(--color-fg);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    transition: background-color 200ms ease, color 200ms ease;
+    text-rendering: optimizeLegibility;
+    transition: background-color 250ms var(--ease-snap), color 250ms var(--ease-snap);
   }
 
   ::selection {
@@ -118,15 +135,13 @@
   .card {
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 0.75rem;
+    border-radius: 0.875rem;
     box-shadow: var(--shadow-card);
-    transition: box-shadow 200ms var(--ease-snap), transform 200ms var(--ease-snap);
+    transition: box-shadow 200ms var(--ease-snap), transform 200ms var(--ease-snap),
+      border-color 200ms var(--ease-snap);
   }
   .card:hover {
     box-shadow: var(--shadow-card-hover);
-  }
-  .dark .card {
-    box-shadow: var(--shadow-card-dark);
   }
 
   .btn {

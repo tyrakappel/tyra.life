@@ -24,7 +24,6 @@ import { snapshotToBoard } from "@/lib/snapshot-to-board";
 import type { SnapshotData } from "@/lib/snapshot";
 import { SectionColumn } from "./section-column";
 import { InlineEdit } from "./inline-edit";
-import { ThemeToggle } from "../theme-toggle";
 import { useHorizontalScroll } from "./use-horizontal-scroll";
 import { VersionMenu } from "./version-menu";
 import { PreviewBanner } from "./preview-banner";
@@ -178,7 +177,6 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             onPreview={handlePreview}
           />
           <ColorThemeMenu />
-          <ThemeToggle />
           <div className="w-px h-5 bg-border/60 mx-0.5" />
           <a
             href="/api/auth/signout"

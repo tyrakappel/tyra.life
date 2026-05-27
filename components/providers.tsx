@@ -1,6 +1,5 @@
 "use client";
 
-import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { VersionWatcher } from "./version-watcher";
@@ -20,13 +19,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <ColorThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          {children}
-          <VersionWatcher />
-        </QueryClientProvider>
-      </ColorThemeProvider>
-    </ThemeProvider>
+    <ColorThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        {children}
+        <VersionWatcher />
+      </QueryClientProvider>
+    </ColorThemeProvider>
   );
 }
