@@ -26,7 +26,7 @@ export default function RootLayout({
             __html: `
               try {
                 var t = localStorage.getItem('tyra-color-theme');
-                if (t !== 'indigo' && t !== 'emerald' && t !== 'rose') t = 'indigo';
+                if (t !== 'indigo' && t !== 'emerald' && t !== 'spectrum') t = 'indigo';
                 document.documentElement.setAttribute('data-color-theme', t);
               } catch (e) {
                 document.documentElement.setAttribute('data-color-theme', 'indigo');

@@ -66,12 +66,17 @@ export function ColorThemeMenu() {
                     )}
                   >
                     <span
-                      className="inline-flex items-center justify-center size-6 rounded-md shadow-sm ring-1 ring-black/10"
-                      style={{ backgroundColor: t.preview }}
+                      className="inline-flex items-center justify-center size-7 rounded-lg shadow-sm ring-1 ring-black/10 shrink-0"
+                      style={{ background: t.preview }}
                       aria-hidden
                     />
-                    <span className="flex-1 text-left font-medium">{t.name}</span>
-                    {isActive && <Check className="size-4 text-accent" />}
+                    <span className="flex-1 text-left">
+                      <div className="font-medium leading-tight">{t.name}</div>
+                      {t.description && (
+                        <div className="text-xs text-fg-muted">{t.description}</div>
+                      )}
+                    </span>
+                    {isActive && <Check className="size-4 text-accent shrink-0" />}
                   </button>
                 );
               })}

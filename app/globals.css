@@ -88,27 +88,88 @@
 }
 
 /* =============================================
-   TEMA 3: ROSE — Mörk skymning
-   Varm aubergine-bakgrund, ljus coral accent.
-   Mood: varm, kreativ, energisk.
+   TEMA 3: SPECTRUM — Färgglada kolumner
+   Inspirerat av Trello conceptual redesign: ljus bg, pastell-tonade
+   kolumner per sektion, vita kort med skarp text, watermark av
+   sektionsnamnet längst ner i varje kolumn.
+   Mood: kreativ, lekfull, översikt.
    ============================================= */
-[data-color-theme="rose"] {
-  --color-bg: rgb(20 12 20);
-  --color-surface: rgb(34 20 30);
-  --color-surface-hover: rgb(46 28 40);
-  --color-border: rgb(80 44 64);
-  --color-muted: rgb(52 28 42);
-  --color-fg: rgb(252 240 246);
-  --color-fg-muted: rgb(196 170 184);
-  --color-accent: rgb(244 114 182);
-  --color-accent-fg: rgb(40 7 22);
-  --color-success: rgb(74 222 128);
-  --color-danger: rgb(248 113 113);
+[data-color-theme="spectrum"] {
+  --color-bg: rgb(245 246 250);
+  --color-surface: rgb(255 255 255);
+  --color-surface-hover: rgb(248 249 252);
+  --color-border: rgb(225 228 238);
+  --color-muted: rgb(238 240 247);
+  --color-fg: rgb(20 22 35);
+  --color-fg-muted: rgb(96 105 125);
+  --color-accent: rgb(99 102 241);
+  --color-accent-fg: rgb(255 255 255);
+  --color-success: rgb(22 163 74);
+  --color-danger: rgb(220 38 38);
 
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 6px rgb(40 10 25 / 0.35);
-  --shadow-card-hover: 0 6px 20px rgb(60 10 35 / 0.45), 0 2px 8px rgb(0 0 0 / 0.4);
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 2px 8px rgb(15 23 42 / 0.06);
+  --shadow-card-hover: 0 4px 14px rgb(15 23 42 / 0.08), 0 8px 24px rgb(15 23 42 / 0.1);
 
-  color-scheme: dark;
+  color-scheme: light;
+}
+
+/* ---------------------------------------------
+   Spectrum-specifika sektion-kolumn-styles
+   - Pastell-tinted bakgrund som ärvs från --section-tint
+   - Kraftigare färgband i kolumnens header
+   - Vita kort med tydlig kontrast
+   - Watermark av sektionsnamnet längst ner
+   --------------------------------------------- */
+[data-color-theme="spectrum"] .section-column {
+  background-color: color-mix(
+    in oklab,
+    var(--section-tint, var(--color-surface)) 22%,
+    white
+  );
+  border: 1px solid
+    color-mix(in oklab, var(--section-tint, var(--color-border)) 45%, white);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-color-theme="spectrum"] .section-column-header {
+  background-color: color-mix(
+    in oklab,
+    var(--section-tint, var(--color-surface)) 40%,
+    white
+  );
+  border-bottom: 1px solid
+    color-mix(in oklab, var(--section-tint, var(--color-border)) 55%, white);
+}
+
+[data-color-theme="spectrum"] .section-column-watermark {
+  display: block;
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: color-mix(
+    in oklab,
+    var(--section-tint, var(--color-fg-muted)) 70%,
+    transparent
+  );
+  opacity: 0.18;
+  pointer-events: none;
+  user-select: none;
+  text-transform: lowercase;
+  z-index: 0;
+  word-break: break-word;
+  padding: 0 1rem;
+}
+
+/* I övriga teman visas inte watermarken och kolumnen får ingen tint */
+.section-column-watermark {
+  display: none;
 }
 
 @layer base {

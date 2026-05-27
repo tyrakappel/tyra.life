@@ -20,6 +20,7 @@ import type { Section } from "@/lib/types";
 import { InlineEdit } from "./inline-edit";
 import { SubcategoryCard } from "./subcategory-card";
 import { cn } from "@/lib/utils";
+import { resolveSectionColor } from "@/lib/section-palette";
 
 type StoreFns = {
   renameSection: (id: string, title: string) => void;
@@ -39,16 +40,23 @@ type StoreFns = {
 
 type Props = {
   section: Section;
+  /** Index i listan av sektioner — för auto-color fallback. */
+  index: number;
   store: StoreFns;
 };
 
-export function SectionColumn({ section, store }: Props) {
+export function SectionColumn({ section, index, store }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: section.id, data: { type: "section" } });
 
-  const style = {
+  const tint = resolveSectionColor(section.color, index);
+
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    // Exponera till CSS — i Spectrum-temat används den för bg + watermark;
+    // i andra teman ignoreras den.
+    ["--section-tint" as never]: tint,
   };
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -80,17 +88,17 @@ export function SectionColumn({ section, store }: Props) {
       layout
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "card flex flex-col w-[320px] flex-shrink-0 max-h-full",
+        "section-column card flex flex-col w-[320px] flex-shrink-0 max-h-full",
         isDragging && "opacity-60"
       )}
     >
       <div
-        className="flex items-center gap-1.5 p-3 pb-2 border-b border-border/70 sticky top-0 bg-surface rounded-t-xl z-10"
-        style={
-          section.color
-            ? { boxShadow: `inset 3px 0 0 ${section.color}` }
-            : undefined
-        }
+        className="section-column-header flex items-center gap-1.5 p-3 pb-2 sticky top-0 rounded-t-xl z-10"
+        style={{
+          // I icke-spectrum-teman: smal accent-stripe till vänster.
+          // I spectrum-temat: ignoreras av .section-column-header bg-rule.
+          boxShadow: `inset 3px 0 0 ${tint}`,
+        }}
       >
         <button
           {...attributes}
@@ -148,7 +156,7 @@ export function SectionColumn({ section, store }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 pt-2 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto p-3 pt-2 scrollbar-thin relative z-10">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
             items={section.subcategories.map((s) => s.id)}
@@ -192,6 +200,11 @@ export function SectionColumn({ section, store }: Props) {
           </button>
         )}
       </div>
+
+      {/* Watermark — endast synlig i spectrum-temat (CSS styr) */}
+      <span className="section-column-watermark" aria-hidden>
+        {section.title}
+      </span>
     </motion.div>
   );
 }

@@ -223,10 +223,11 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             >
               <div className="h-full flex gap-4 px-5 py-4 items-stretch min-w-min">
                 <AnimatePresence initial={false}>
-                  {board.sections.map((section) => (
+                  {board.sections.map((section, i) => (
                     <SectionColumn
                       key={section.id}
                       section={section}
+                      index={i}
                       store={store}
                     />
                   ))}
