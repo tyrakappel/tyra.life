@@ -33,6 +33,35 @@ function getVisibleYears(width: number): number {
   return 3;
 }
 
+/**
+ * Längden på ett fas-block beroende på vilken ålder vi är på.
+ * Yngre = kortare faser (snabba utvecklingssteg).
+ */
+function phaseSizeForAge(age: number): number {
+  if (age < 30) return 3;
+  if (age < 50) return 5;
+  return 10;
+}
+
+/**
+ * Generera fas-block 0..currentAge med adaptiv blocksize.
+ * Returnerar [{start, end}] där end är exklusiv.
+ */
+function generatePhases(
+  currentAge: number
+): { start: number; end: number }[] {
+  if (currentAge <= 0) return [];
+  const phases: { start: number; end: number }[] = [];
+  let s = 0;
+  while (s < currentAge) {
+    const size = phaseSizeForAge(s);
+    const e = Math.min(s + size, currentAge);
+    phases.push({ start: s, end: e });
+    s = e;
+  }
+  return phases;
+}
+
 export function LifeCurveView({ boardId }: Props) {
   const [data, setData] = useState<LifeCurveData>({
     birthYear: null,
@@ -163,7 +192,7 @@ type ChartProps = {
   saving: boolean;
 };
 
-const PADDING = { top: 32, right: 32, bottom: 56, left: 64 };
+const PADDING = { top: 48, right: 32, bottom: 56, left: 64 };
 const MIN_SVG_HEIGHT = 360;
 
 function Chart({
@@ -306,6 +335,9 @@ function Chart({
     return marks;
   }, [age, birthYear]);
 
+  // Fas-block (livsfaser)
+  const phases = useMemo(() => generatePhases(age), [age]);
+
   // Y-axis tick-värden
   const yTicks = [10, 5, 0, -5, -10];
 
@@ -361,6 +393,55 @@ function Chart({
               <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
             </linearGradient>
           </defs>
+
+          {/* Fas-block: zebra-bakgrund + skarpa skiljelinjer + etikett */}
+          {phases.map((phase, i) => {
+            const x = xForAge(phase.start);
+            const w = xForAge(phase.end) - x;
+            const isEven = i % 2 === 0;
+            const blockSize = phase.end - phase.start;
+            const label =
+              blockSize === 1
+                ? `${phase.start} år`
+                : `${phase.start}–${phase.end - 1} år`;
+            return (
+              <g key={`phase-${i}`}>
+                {/* Alternerande bakgrund */}
+                <rect
+                  x={x}
+                  y={PADDING.top}
+                  width={w}
+                  height={chartH}
+                  fill="var(--color-fg)"
+                  fillOpacity={isEven ? 0.025 : 0}
+                />
+                {/* Skarp skiljelinje (inte före första) */}
+                {i > 0 && (
+                  <line
+                    x1={x}
+                    x2={x}
+                    y1={PADDING.top}
+                    y2={PADDING.top + chartH}
+                    stroke="currentColor"
+                    strokeOpacity={0.22}
+                    className="text-fg-muted"
+                  />
+                )}
+                {/* Etikett ovanför chart */}
+                <text
+                  x={x + w / 2}
+                  y={PADDING.top - 16}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fontWeight={600}
+                  className="fill-fg-muted tabular-nums uppercase tracking-wider"
+                  fillOpacity={0.7}
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })}
 
           {/* Y-axis labels + grid */}
           {yTicks.map((v) => {
