@@ -107,9 +107,9 @@ export function BoardSwitcher({ boardId, boardName, boardEmoji }: Props) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 top-full mt-2 w-72 card p-1.5 z-30 shadow-card-hover"
+            className="absolute left-0 top-full mt-2 w-72 card p-2 z-50 shadow-card-hover"
           >
-            <div className="px-2 py-1.5 text-xs font-semibold text-fg-muted uppercase tracking-wider">
+            <div className="px-2.5 pt-1.5 pb-2 text-xs font-semibold text-fg-muted uppercase tracking-wider">
               Dina boards
             </div>
 
@@ -126,17 +126,17 @@ export function BoardSwitcher({ boardId, boardName, boardEmoji }: Props) {
                       key={b.id}
                       onClick={() => handleSelect(b.id)}
                       className={cn(
-                        "flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg text-left transition-colors",
+                        "flex items-center gap-3 w-full px-2.5 py-2 rounded-lg text-left transition-colors",
                         isActive ? "bg-accent/10" : "hover:bg-surface-hover"
                       )}
                     >
                       {b.emoji ? (
-                        <span className="text-base leading-none w-6 text-center shrink-0">
+                        <span className="text-lg leading-none w-7 text-center shrink-0">
                           {b.emoji}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center justify-center size-6 rounded-md bg-muted text-fg-muted shrink-0">
-                          <LayoutGrid className="size-3" />
+                        <span className="inline-flex items-center justify-center size-7 rounded-md bg-muted/60 text-fg-muted shrink-0">
+                          <LayoutGrid className="size-3.5" />
                         </span>
                       )}
                       <span className="flex-1 text-sm font-medium truncate">
@@ -151,15 +151,15 @@ export function BoardSwitcher({ boardId, boardName, boardEmoji }: Props) {
               </div>
             )}
 
-            <div className="h-px bg-border my-1" />
+            <div className="h-px bg-border my-1.5" />
 
             <button
               onClick={handleNew}
               disabled={creating}
-              className="flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors disabled:opacity-50"
+              className="flex items-center gap-3 w-full px-2.5 py-2 rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors disabled:opacity-50"
             >
-              <span className="inline-flex items-center justify-center size-6 rounded-md bg-muted text-fg-muted shrink-0">
-                <Plus className="size-3.5" />
+              <span className="inline-flex items-center justify-center size-7 rounded-md bg-muted/60 text-fg-muted shrink-0">
+                <Plus className="size-4" />
               </span>
               {creating ? "Skapar..." : "Skapa ny board"}
             </button>
