@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   DndContext,
   DragEndEvent,
@@ -45,18 +44,33 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const [addingSection, setAddingSection] = useState(false);
   const [editingName, setEditingName] = useState(false);
 
-  // ViewMode synkad mot URL ?view=plan|curve så reload behåller flik
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const urlView = searchParams.get("view");
-  const viewMode: ViewMode = urlView === "curve" ? "curve" : "plan";
+  // ViewMode synkad mot URL ?view=plan|curve så reload behåller flik.
+  // Använder window.location direkt + history.replaceState för att undvika
+  // SSR-pre-render-mismatches med useSearchParams.
+  const [viewMode, setViewModeInternal] = useState<ViewMode>("plan");
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("view") === "curve") setViewModeInternal("curve");
+
+    // Lyssna på back/forward navigation
+    const onPop = () => {
+      const p = new URLSearchParams(window.location.search);
+      setViewModeInternal(p.get("view") === "curve" ? "curve" : "plan");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   const setViewMode = (next: ViewMode) => {
-    const params = new URLSearchParams(searchParams.toString());
+    setViewModeInternal(next);
+    const params = new URLSearchParams(window.location.search);
     if (next === "plan") params.delete("view");
     else params.set("view", next);
     const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    const url = qs
+      ? `${window.location.pathname}?${qs}`
+      : window.location.pathname;
+    window.history.replaceState({}, "", url);
   };
 
   const newSectionRef = useRef<HTMLInputElement>(null);
