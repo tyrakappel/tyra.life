@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Check, Plus, LayoutGrid } from "lucide-react";
+import { ChevronDown, Plus, LayoutGrid } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,10 @@ type Props = {
   onEditSubmit?: (newName: string) => void;
 };
 
+const isMac =
+  typeof window !== "undefined" && /Mac/i.test(window.navigator.userAgent);
+const MOD_KEY = isMac ? "⌘" : "Ctrl+";
+
 export function BoardSwitcher({
   boardId,
   boardName,
@@ -35,26 +39,27 @@ export function BoardSwitcher({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [boards, setBoards] = useState<BoardSummary[]>([]);
-  const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(boardName);
   const cancelledRef = useRef(false);
 
-  // Synka draft när vi går in i edit-läge
+  // Hämta boards vid mount + när boardId ändras (efter navigation)
   useEffect(() => {
-    if (editing) {
-      setDraft(boardName);
-      cancelledRef.current = false;
-      // Liten delay så autoFocus + select hinner
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      });
-    }
-  }, [editing, boardName]);
+    let cancelled = false;
+    api
+      .listBoards()
+      .then((r) => {
+        if (!cancelled) setBoards(r.boards);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [boardId]);
 
+  // Stäng vid klick utanför
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
@@ -64,14 +69,43 @@ export function BoardSwitcher({
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
+  // Tangentbordsgenvägar ⌘/Ctrl + 1..9 för att växla board
   useEffect(() => {
-    if (!open) return;
-    setLoading(true);
-    api
-      .listBoards()
-      .then((r) => setBoards(r.boards))
-      .finally(() => setLoading(false));
-  }, [open]);
+    if (editing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+      const target = document.activeElement;
+      // Hoppa över om man skriver i ett textfält
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target as HTMLElement | null)?.isContentEditable
+      ) {
+        return;
+      }
+      const num = parseInt(e.key, 10);
+      if (isNaN(num) || num < 1 || num > 9) return;
+      const targetBoard = boards[num - 1];
+      if (!targetBoard) return;
+      if (targetBoard.id === boardId) return;
+      e.preventDefault();
+      router.push(`/board/${targetBoard.id}`);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [boards, boardId, router, editing]);
+
+  // Synka draft när vi går in i edit-läge
+  useEffect(() => {
+    if (editing) {
+      setDraft(boardName);
+      cancelledRef.current = false;
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+    }
+  }, [editing, boardName]);
 
   const handleSelect = (id: string) => {
     if (id !== boardId) router.push(`/board/${id}`);
@@ -116,11 +150,8 @@ export function BoardSwitcher({
           onBlur={() => {
             if (cancelledRef.current) return;
             const trimmed = draft.trim();
-            if (trimmed && trimmed !== boardName) {
-              onEditSubmit?.(trimmed);
-            } else {
-              onEditCancel?.();
-            }
+            if (trimmed && trimmed !== boardName) onEditSubmit?.(trimmed);
+            else onEditCancel?.();
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -172,61 +203,79 @@ export function BoardSwitcher({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 top-full mt-2 w-72 card p-2 z-50 shadow-card-hover"
+            className="absolute left-0 top-full mt-2 min-w-[20rem] card p-2 z-50 shadow-card-hover"
           >
             <div className="px-2.5 pt-1.5 pb-2 text-xs font-semibold text-fg-muted uppercase tracking-wider">
               Dina boards
             </div>
 
-            {loading ? (
-              <div className="p-4 text-sm text-fg-muted text-center">
-                Laddar...
-              </div>
-            ) : (
-              <div className="space-y-0.5 max-h-72 overflow-y-auto scrollbar-thin">
-                {boards.map((b) => {
-                  const isActive = b.id === boardId;
-                  return (
-                    <button
-                      key={b.id}
-                      onClick={() => handleSelect(b.id)}
+            <div className="space-y-0.5 max-h-80 overflow-y-auto scrollbar-thin">
+              {boards.map((b, idx) => {
+                const isActive = b.id === boardId;
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => handleSelect(b.id)}
+                    className={cn(
+                      "relative flex items-center gap-3 w-full pl-3 pr-2.5 py-2.5 rounded-lg text-left transition-colors",
+                      "hover:bg-surface-hover"
+                    )}
+                  >
+                    {/* Aktiv-indikator: 3px stapel till vänster */}
+                    {isActive && (
+                      <span
+                        className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-accent"
+                        aria-hidden
+                      />
+                    )}
+                    {b.emoji ? (
+                      <span className="text-xl leading-none w-7 text-center shrink-0">
+                        {b.emoji}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center size-7 rounded-md bg-muted/60 text-fg-muted shrink-0">
+                        <LayoutGrid className="size-3.5" />
+                      </span>
+                    )}
+                    <span
                       className={cn(
-                        "flex items-center gap-3 w-full px-2.5 py-2 rounded-lg text-left transition-colors",
-                        isActive ? "bg-accent/10" : "hover:bg-surface-hover"
+                        "flex-1 text-sm truncate",
+                        isActive ? "font-semibold text-fg" : "font-medium"
                       )}
                     >
-                      {b.emoji ? (
-                        <span className="text-lg leading-none w-7 text-center shrink-0">
-                          {b.emoji}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center justify-center size-7 rounded-md bg-muted/60 text-fg-muted shrink-0">
-                          <LayoutGrid className="size-3.5" />
-                        </span>
-                      )}
-                      <span className="flex-1 text-sm font-medium truncate">
-                        {b.name}
+                      {b.name}
+                    </span>
+                    {idx < 9 && (
+                      <span
+                        className={cn(
+                          "text-xs tabular-nums shrink-0 px-1.5 py-0.5 rounded font-medium",
+                          isActive
+                            ? "text-accent"
+                            : "text-fg-muted/70"
+                        )}
+                      >
+                        {MOD_KEY}
+                        {idx + 1}
                       </span>
-                      {isActive && (
-                        <Check className="size-4 text-accent shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
             <div className="h-px bg-border my-1.5" />
 
             <button
               onClick={handleNew}
               disabled={creating}
-              className="flex items-center gap-3 w-full px-2.5 py-2 rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors disabled:opacity-50"
+              className="flex items-center gap-3 w-full pl-3 pr-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors disabled:opacity-50"
             >
               <span className="inline-flex items-center justify-center size-7 rounded-md bg-muted/60 text-fg-muted shrink-0">
                 <Plus className="size-4" />
               </span>
-              {creating ? "Skapar..." : "Skapa ny board"}
+              <span className="flex-1 text-left">
+                {creating ? "Skapar..." : "Skapa ny board"}
+              </span>
             </button>
           </motion.div>
         )}
