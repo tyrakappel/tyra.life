@@ -46,8 +46,9 @@ type Props = {
 };
 
 export function SectionColumn({ section, index, store }: Props) {
+  const sortableId = section._clientKey ?? section.id;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: section.id, data: { type: "section" } });
+    useSortable({ id: sortableId, data: { type: "section" } });
 
   const tint = resolveSectionColor(section.color, index);
 
@@ -69,13 +70,17 @@ export function SectionColumn({ section, index, store }: Props) {
     useSensor(KeyboardSensor)
   );
 
+  const subKey = (s: { id: string; _clientKey?: string }) =>
+    s._clientKey ?? s.id;
+
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const ids = section.subcategories.map((s) => s.id);
-    const from = ids.indexOf(String(active.id));
-    const to = ids.indexOf(String(over.id));
+    const keys = section.subcategories.map(subKey);
+    const from = keys.indexOf(String(active.id));
+    const to = keys.indexOf(String(over.id));
     if (from < 0 || to < 0) return;
+    const ids = section.subcategories.map((s) => s.id);
     const next = [...ids];
     next.splice(to, 0, next.splice(from, 1)[0]);
     store.reorderSubcategories(section.id, next);
@@ -169,7 +174,7 @@ export function SectionColumn({ section, index, store }: Props) {
       <div className="flex-1 overflow-y-auto p-3 pt-2 scrollbar-thin relative z-10">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
-            items={section.subcategories.map((s) => s.id)}
+            items={section.subcategories.map(subKey)}
             strategy={verticalListSortingStrategy}
           >
             <AnimatePresence initial={false}>

@@ -98,21 +98,25 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
 
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
 
+  const sectionKey = (s: { id: string; _clientKey?: string }) =>
+    s._clientKey ?? s.id;
+
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const ids = board.sections.map((s) => s.id);
-    const from = ids.indexOf(String(active.id));
-    const to = ids.indexOf(String(over.id));
+    const keys = board.sections.map(sectionKey);
+    const from = keys.indexOf(String(active.id));
+    const to = keys.indexOf(String(over.id));
     if (from < 0 || to < 0) return;
+    const ids = board.sections.map((s) => s.id);
     const next = [...ids];
     next.splice(to, 0, next.splice(from, 1)[0]);
     store.reorderSections(next);
   };
 
   const activeSection = activeId
-    ? board.sections.find((s) => s.id === activeId)
+    ? board.sections.find((s) => sectionKey(s) === activeId)
     : null;
 
   // Auto-snapshot: debounced ~2s efter senaste ändring av board-state.
@@ -301,7 +305,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={board.sections.map((s) => s.id)}
+              items={board.sections.map(sectionKey)}
               strategy={horizontalListSortingStrategy}
             >
               <div className="h-full flex gap-4 px-5 py-4 items-stretch min-w-min">

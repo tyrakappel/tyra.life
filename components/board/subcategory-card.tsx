@@ -39,8 +39,9 @@ type Props = {
 };
 
 export function SubcategoryCard({ sub, store, autoEdit }: Props) {
+  const sortableId = sub._clientKey ?? sub.id;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: sub.id });
+    useSortable({ id: sortableId });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -87,28 +88,32 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
     useSensor(KeyboardSensor)
   );
 
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  const activeTask = activeTaskId
-    ? sorted.find((t) => t.id === activeTaskId)
+  const [activeTaskKey, setActiveTaskKey] = useState<string | null>(null);
+  // Använd _clientKey som dnd-id för stabilitet över id-byten
+  const taskKey = (t: typeof sorted[number]) => t._clientKey ?? t.id;
+  const activeTask = activeTaskKey
+    ? sorted.find((t) => taskKey(t) === activeTaskKey)
     : null;
 
   const handleDragStart = (e: DragStartEvent) =>
-    setActiveTaskId(String(e.active.id));
+    setActiveTaskKey(String(e.active.id));
 
   const handleDragEnd = (e: DragEndEvent) => {
-    setActiveTaskId(null);
+    setActiveTaskKey(null);
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const ids = sorted.map((t) => t.id);
-    const from = ids.indexOf(String(active.id));
-    const to = ids.indexOf(String(over.id));
+    const keys = sorted.map(taskKey);
+    const from = keys.indexOf(String(active.id));
+    const to = keys.indexOf(String(over.id));
     if (from < 0 || to < 0) return;
+    // Bygg den nya ordningen som server-id:n (det är vad store + API behöver)
+    const ids = sorted.map((t) => t.id);
     const next = [...ids];
     next.splice(to, 0, next.splice(from, 1)[0]);
     store.reorderTasks(sub.id, next);
   };
 
-  const handleDragCancel = () => setActiveTaskId(null);
+  const handleDragCancel = () => setActiveTaskKey(null);
 
   return (
     <motion.div
@@ -169,7 +174,7 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
           onDragCancel={handleDragCancel}
         >
           <SortableContext
-            items={sorted.map((t) => t.id)}
+            items={sorted.map(taskKey)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-0.5">

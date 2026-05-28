@@ -17,6 +17,10 @@ type Props = {
 };
 
 export function TaskItem({ task, onToggle, onRename, onDelete, autoEdit }: Props) {
+  // Använd _clientKey som dnd-kit-id så identiteten är stabil när task.id
+  // byts från tmp_xxx → server-id efter API-svar (annars omregistreras
+  // useSortable och vi får en synlig flicker/layout-justering).
+  const sortableId = task._clientKey ?? task.id;
   const {
     attributes,
     listeners,
@@ -24,7 +28,7 @@ export function TaskItem({ task, onToggle, onRename, onDelete, autoEdit }: Props
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({ id: sortableId });
 
   const style = {
     transform: CSS.Transform.toString(transform),
