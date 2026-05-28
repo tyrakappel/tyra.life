@@ -308,7 +308,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
                 <AnimatePresence initial={false}>
                   {board.sections.map((section, i) => (
                     <SectionColumn
-                      key={section.id}
+                      key={section._clientKey ?? section.id}
                       section={section}
                       index={i}
                       store={store}

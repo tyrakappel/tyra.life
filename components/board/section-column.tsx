@@ -86,7 +86,10 @@ export function SectionColumn({ section, index, store }: Props) {
       ref={setNodeRef}
       style={style}
       layout
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "section-column card flex flex-col w-[320px] flex-shrink-0 max-h-full relative",
         isDragging && "opacity-60",
@@ -171,7 +174,11 @@ export function SectionColumn({ section, index, store }: Props) {
           >
             <AnimatePresence initial={false}>
               {section.subcategories.map((sub) => (
-                <SubcategoryCard key={sub.id} sub={sub} store={store} />
+                <SubcategoryCard
+                  key={sub._clientKey ?? sub.id}
+                  sub={sub}
+                  store={store}
+                />
               ))}
             </AnimatePresence>
           </SortableContext>

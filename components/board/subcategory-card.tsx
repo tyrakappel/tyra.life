@@ -115,7 +115,9 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
       ref={setNodeRef}
       style={style}
       layout
-      layoutId={`sub-${sub.id}`}
+      initial={{ opacity: 0, y: 6, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "card p-3 mb-2 group/sub",
@@ -174,7 +176,7 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
               <AnimatePresence initial={false}>
                 {sorted.map((t) => (
                   <TaskItem
-                    key={t.id}
+                    key={t._clientKey ?? t.id}
                     task={t}
                     onToggle={() => store.toggleTask(t.id)}
                     onRename={(title) => store.renameTask(t.id, title)}

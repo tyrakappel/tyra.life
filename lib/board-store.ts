@@ -74,6 +74,7 @@ export const createBoardStore = (initialBoard: Board) =>
       const order = (last?.order ?? 0) + ORDER_STEP;
       const optimistic: Section = {
         id: tempId,
+        _clientKey: tempId,
         boardId,
         title,
         description: null,
@@ -91,7 +92,9 @@ export const createBoardStore = (initialBoard: Board) =>
           board: {
             ...st.board,
             sections: st.board.sections.map((s) =>
-              s.id === tempId ? { ...r.section, subcategories: [] } : s
+              s.id === tempId
+                ? { ...r.section, _clientKey: tempId, subcategories: [] }
+                : s
             ),
           },
         }));
@@ -176,6 +179,7 @@ export const createBoardStore = (initialBoard: Board) =>
       const order = (last?.order ?? 0) + ORDER_STEP;
       const optimistic: Subcategory = {
         id: tempId,
+        _clientKey: tempId,
         sectionId,
         title,
         description: null,
@@ -203,7 +207,9 @@ export const createBoardStore = (initialBoard: Board) =>
                 ? {
                     ...s,
                     subcategories: s.subcategories.map((sub) =>
-                      sub.id === tempId ? { ...r.subcategory, tasks: [] } : sub
+                      sub.id === tempId
+                        ? { ...r.subcategory, _clientKey: tempId, tasks: [] }
+                        : sub
                     ),
                   }
                 : s
@@ -284,6 +290,7 @@ export const createBoardStore = (initialBoard: Board) =>
       const order = (lastIncomplete?.order ?? 0) + ORDER_STEP;
       const optimistic: Task = {
         id: tempId,
+        _clientKey: tempId,
         subcategoryId,
         title,
         description: null,
@@ -317,7 +324,9 @@ export const createBoardStore = (initialBoard: Board) =>
                   ? {
                       ...sub,
                       tasks: sub.tasks.map((t) =>
-                        t.id === tempId ? r.task : t
+                        t.id === tempId
+                          ? { ...r.task, _clientKey: tempId }
+                          : t
                       ),
                     }
                   : sub

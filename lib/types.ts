@@ -8,6 +8,8 @@ export type Task = {
   order: number;
   createdAt: string | Date;
   updatedAt: string | Date;
+  /** Stabil React-nyckel som överlever id-byten optimistic→server */
+  _clientKey?: string;
 };
 
 export type Subcategory = {
@@ -19,6 +21,7 @@ export type Subcategory = {
   tasks: Task[];
   createdAt: string | Date;
   updatedAt: string | Date;
+  _clientKey?: string;
 };
 
 export type Section = {
@@ -31,6 +34,7 @@ export type Section = {
   subcategories: Subcategory[];
   createdAt: string | Date;
   updatedAt: string | Date;
+  _clientKey?: string;
 };
 
 export type Board = {
