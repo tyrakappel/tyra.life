@@ -78,10 +78,20 @@ export const api = {
         updatedAt: string;
       }[];
     }>("/api/boards"),
-  createBoard: (name: string, emoji?: string) =>
+  createBoard: (
+    name: string,
+    opts?: { emoji?: string; template?: "empty" | "livshjul" }
+  ) =>
     req<{ board: { id: string; name: string; emoji: string | null; order: number } }>(
       "/api/boards",
-      { method: "POST", body: JSON.stringify({ name, emoji }) }
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          emoji: opts?.emoji,
+          template: opts?.template,
+        }),
+      }
     ),
   updateBoard: (id: string, data: { name?: string; emoji?: string | null }) =>
     req(`/api/boards/${id}`, { method: "PATCH", body: JSON.stringify(data) }),

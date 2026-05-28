@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api-client";
 import { useNavStore } from "@/lib/nav-store";
 import { cn } from "@/lib/utils";
+import { NewBoardModal } from "./new-board-modal";
 
 type BoardSummary = {
   id: string;
@@ -41,7 +42,7 @@ export function BoardSwitcher({
   const startNav = useNavStore((s) => s.start);
   const [open, setOpen] = useState(false);
   const [boards, setBoards] = useState<BoardSummary[]>([]);
-  const [creating, setCreating] = useState(false);
+  const [newModalOpen, setNewModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   /** Navigerar till annan board och visar progress-bar */
@@ -121,23 +122,31 @@ export function BoardSwitcher({
     goToBoard(id);
   };
 
-  const handleNew = async () => {
-    setCreating(true);
+  const handleNew = () => {
+    setOpen(false);
+    setNewModalOpen(true);
+  };
+
+  const handleCreate = async ({
+    name,
+    emoji,
+    template,
+  }: {
+    name: string;
+    emoji: string | null;
+    template: "empty" | "livshjul";
+  }) => {
     try {
-      const name = window.prompt("Namn på den nya boarden:");
-      if (!name?.trim()) {
-        setCreating(false);
-        return;
-      }
-      const emoji = window.prompt("Emoji (frivilligt):") || undefined;
-      const r = await api.createBoard(name.trim(), emoji?.trim());
-      setOpen(false);
+      const r = await api.createBoard(name, {
+        emoji: emoji ?? undefined,
+        template,
+      });
+      setNewModalOpen(false);
+      startNav(r.board.id);
       router.push(`/board/${r.board.id}`);
     } catch (err) {
       console.error(err);
       alert("Kunde inte skapa boarden.");
-    } finally {
-      setCreating(false);
     }
   };
 
@@ -276,19 +285,22 @@ export function BoardSwitcher({
 
             <button
               onClick={handleNew}
-              disabled={creating}
-              className="flex items-center gap-3 w-full pl-3 pr-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors disabled:opacity-50"
+              className="flex items-center gap-3 w-full pl-3 pr-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
             >
               <span className="inline-flex items-center justify-center size-7 rounded-md bg-muted/60 text-fg-muted shrink-0">
                 <Plus className="size-4" />
               </span>
-              <span className="flex-1 text-left">
-                {creating ? "Skapar..." : "Skapa ny board"}
-              </span>
+              <span className="flex-1 text-left">Skapa ny board</span>
             </button>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <NewBoardModal
+        open={newModalOpen}
+        onClose={() => setNewModalOpen(false)}
+        onCreate={handleCreate}
+      />
     </div>
   );
 }
