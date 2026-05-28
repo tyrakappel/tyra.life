@@ -88,9 +88,8 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
   // Använd _clientKey som dnd-id för stabilitet över id-byten
   const taskKey = (t: typeof sorted[number]) => t._clientKey ?? t.id;
 
-  // Gör hela subkategorin droppable så användaren kan släppa en task
-  // på den för att flytta över till denna subkategori (inkl. tomma)
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+  // Inre drop-zone för task-listan (för polish när man hovrar över tom yta)
+  const { setNodeRef: setDroppableRef, isOver: isOverList } = useDroppable({
     id: `sub-droppable-${sub._clientKey ?? sub.id}`,
     data: {
       type: "subcategory-drop",
@@ -98,9 +97,26 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
     },
   });
 
+  // Yttre drop-zone som täcker hela subkategori-kortet (för förlåtande UX)
+  const { setNodeRef: setCardDroppableRef, isOver: isOverCard } = useDroppable({
+    id: `sub-card-droppable-${sub._clientKey ?? sub.id}`,
+    data: {
+      type: "subcategory-drop",
+      subcategoryId: sub.id,
+    },
+  });
+
+  // Kombinera refar — kortet är BÅDE sortable (för subcat-reorder) och droppable (för task-drop)
+  const combinedRef = (node: HTMLElement | null) => {
+    setNodeRef(node);
+    setCardDroppableRef(node);
+  };
+
+  const isOver = isOverList || isOverCard;
+
   return (
     <motion.div
-      ref={setNodeRef}
+      ref={combinedRef}
       style={style}
       layout
       initial={{ opacity: 0, y: 6, scale: 0.97 }}
@@ -108,9 +124,11 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
       exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "card p-3 mb-2 group/sub",
+        "card p-3 mb-2 group/sub transition-shadow",
         isDragging && "opacity-50 cursor-grabbing",
-        allDone && "ring-2 ring-success/40"
+        allDone && "ring-2 ring-success/40",
+        // När en task dras hit visas en mjuk accent-ring runt kortet
+        isOver && !isDragging && "ring-2 ring-accent/40 shadow-card-hover"
       )}
     >
       <div ref={cardRef}>

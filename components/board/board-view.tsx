@@ -186,19 +186,30 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
       if (!sourceSubId || !taskId) return;
 
       const overData = over.data.current as
-        | { type?: string; subcategoryId?: string; taskId?: string }
+        | {
+            type?: string;
+            subcategoryId?: string;
+            subId?: string;
+            taskId?: string;
+          }
         | undefined;
 
       let targetSubId: string | undefined;
       let insertBeforeTaskId: string | null = null;
       if (overData?.type === "task" && overData.subcategoryId) {
+        // Dropp på en annan task → infogas vid den positionen
         targetSubId = overData.subcategoryId;
         insertBeforeTaskId = overData.taskId ?? null;
       } else if (
         overData?.type === "subcategory-drop" &&
         overData.subcategoryId
       ) {
+        // Dropp på task-listans drop-zon (tom eller bredvid tasks)
         targetSubId = overData.subcategoryId;
+        insertBeforeTaskId = null;
+      } else if (overData?.type === "subcategory" && overData.subId) {
+        // Dropp på subkategori-kortet (header / area utanför task-listan)
+        targetSubId = overData.subId;
         insertBeforeTaskId = null;
       } else {
         return;
