@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import type { Board } from "@/lib/types";
 import { createBoardStore } from "@/lib/board-store";
@@ -245,7 +245,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             </div>
           </div>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-8">
           <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/60">
             <VersionMenu
               boardId={board.id}
@@ -254,20 +254,20 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             />
             <ColorThemeMenu />
           </div>
-          <span
-            className="text-xs text-fg-muted/60 font-medium tabular-nums select-none"
-            title={`Tyra Life v${APP_VERSION}`}
-          >
-            v{APP_VERSION}
-          </span>
-          <a
-            href="/api/auth/signout"
-            className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl bg-muted/40 border border-border/60 text-fg-muted hover:text-danger hover:bg-surface-hover hover:border-danger/30 active:scale-95 transition-all duration-150 ease-snap text-sm font-medium"
-            aria-label="Logga ut"
-          >
-            <LogOut className="size-[18px]" />
-            <span>Logga ut</span>
-          </a>
+          <div className="flex items-center gap-4">
+            <span
+              className="text-xs text-fg-muted/60 font-medium tabular-nums select-none"
+              title={`Tyra Life v${APP_VERSION}`}
+            >
+              v{APP_VERSION}
+            </span>
+            <a
+              href="/api/auth/signout"
+              className="text-xs text-fg-muted/60 hover:text-danger font-medium transition-colors select-none"
+            >
+              Logga ut
+            </a>
+          </div>
         </div>
       </header>
 
