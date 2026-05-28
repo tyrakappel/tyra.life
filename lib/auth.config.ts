@@ -19,7 +19,7 @@ export default {
       ? [
           Resend({
             apiKey: process.env.AUTH_RESEND_KEY!,
-            from: process.env.EMAIL_FROM || "Tyra Life <onboarding@resend.dev>",
+            from: process.env.EMAIL_FROM || "Tyralife <onboarding@resend.dev>",
           }),
         ]
       : []),

@@ -257,7 +257,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
           <div className="flex items-center gap-4">
             <span
               className="text-xs text-fg-muted/60 font-medium tabular-nums select-none"
-              title={`Tyra Life v${APP_VERSION}`}
+              title={`Tyralife v${APP_VERSION}`}
             >
               v{APP_VERSION}
             </span>

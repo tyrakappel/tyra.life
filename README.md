@@ -1,4 +1,4 @@
-# Tyra Life
+# Tyralife
 
 En Trello-liknande Life Plan-app. Desktop-fokuserad, inline-edit, drag-and-drop, dark/light mode.
 

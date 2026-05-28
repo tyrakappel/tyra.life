@@ -4,11 +4,24 @@ import { Providers } from "@/components/providers";
 import { APP_VERSION } from "@/lib/version";
 
 export const metadata: Metadata = {
-  title: "Tyra Life",
+  title: "Tyralife",
   description: "Din livsplan, på ett ställe.",
+  applicationName: "Tyralife",
+  appleWebApp: {
+    title: "Tyralife",
+    capable: true,
+    statusBarStyle: "default",
+  },
+  openGraph: {
+    title: "Tyralife",
+    description: "Din livsplan, på ett ställe.",
+    siteName: "Tyralife",
+  },
   icons: {
     icon: "/favicon.svg",
+    apple: "/favicon.svg",
   },
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({

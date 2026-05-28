@@ -1,0 +1,17 @@
+{
+  "name": "Tyralife",
+  "short_name": "Tyralife",
+  "description": "Din livsplan, på ett ställe.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0a16",
+  "theme_color": "#a891ff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

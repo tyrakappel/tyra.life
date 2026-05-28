@@ -41,7 +41,7 @@ export default async function SignInPage({
             </div>
             <div className="text-5xl tracking-tight select-none leading-none font-bold">
               <span className="text-fg">Tyra</span>
-              <span className="text-accent">Life</span>
+              <span className="text-accent">life</span>
             </div>
             <p
               className="text-fg-muted text-sm mt-2 select-none italic"
