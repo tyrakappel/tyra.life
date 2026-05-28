@@ -92,44 +92,18 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const scrollRef = useHorizontalScroll<HTMLDivElement>();
   useBoardPan(scrollRef);
 
-  const sectionSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor)
   );
-  const taskSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(KeyboardSensor)
-  );
-
-  const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
 
   const sectionKey = (s: { id: string; _clientKey?: string }) =>
     s._clientKey ?? s.id;
   const taskKey = (t: { id: string; _clientKey?: string }) =>
     t._clientKey ?? t.id;
 
-  const handleDragEnd = (e: DragEndEvent) => {
-    setActiveId(null);
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const keys = board.sections.map(sectionKey);
-    const from = keys.indexOf(String(active.id));
-    const to = keys.indexOf(String(over.id));
-    if (from < 0 || to < 0) return;
-    const ids = board.sections.map((s) => s.id);
-    const next = [...ids];
-    next.splice(to, 0, next.splice(from, 1)[0]);
-    store.reorderSections(next);
-  };
-
-  const activeSection = activeId
-    ? board.sections.find((s) => sectionKey(s) === activeId)
-    : null;
-
-  // ============ Task DnD (cross-subcategory) ============
-  // Hitta alla tasks + deras subcategoryId i ett enda pass
+  // Hitta task via key (för DragOverlay)
   const findTaskByKey = (key: string) => {
     for (const s of board.sections) {
       for (const sub of s.subcategories) {
@@ -140,66 +114,119 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
     return null;
   };
 
+  const activeSection = activeId
+    ? board.sections.find((s) => sectionKey(s) === activeId)
+    : null;
   const activeTask = activeTaskKey ? findTaskByKey(activeTaskKey)?.task : null;
 
-  const handleTaskDragStart = (e: DragStartEvent) =>
-    setActiveTaskKey(String(e.active.id));
+  // ============ Unified DnD-handler ============
+  // En enda DndContext för sections, subkategorier OCH tasks.
+  // active.data.current.type avgör vad som flyttas.
 
-  const handleTaskDragCancel = () => setActiveTaskKey(null);
+  const handleDragStart = (e: DragStartEvent) => {
+    const type = (e.active.data.current as { type?: string } | undefined)?.type;
+    if (type === "section") setActiveId(String(e.active.id));
+    else if (type === "task") setActiveTaskKey(String(e.active.id));
+  };
 
-  const handleTaskDragEnd = (e: DragEndEvent) => {
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setActiveTaskKey(null);
+  };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    setActiveId(null);
     setActiveTaskKey(null);
     const { active, over } = e;
     if (!over) return;
+    const activeType = (active.data.current as { type?: string } | undefined)
+      ?.type;
 
-    const activeData = active.data.current as
-      | { type?: string; subcategoryId?: string; taskId?: string }
-      | undefined;
-    if (activeData?.type !== "task") return;
-    const sourceSubId = activeData.subcategoryId;
-    const taskId = activeData.taskId;
-    if (!sourceSubId || !taskId) return;
-
-    const overData = over.data.current as
-      | { type?: string; subcategoryId?: string; taskId?: string }
-      | undefined;
-
-    // Bestäm målsubkategori + ev. task att infogas före
-    let targetSubId: string | undefined;
-    let insertBeforeTaskId: string | null = null;
-    if (overData?.type === "task" && overData.subcategoryId) {
-      targetSubId = overData.subcategoryId;
-      insertBeforeTaskId = overData.taskId ?? null;
-    } else if (overData?.type === "subcategory-drop" && overData.subcategoryId) {
-      targetSubId = overData.subcategoryId;
-      insertBeforeTaskId = null; // läggs sist
-    } else {
-      return;
-    }
-
-    if (targetSubId === sourceSubId) {
-      // Samma subkategori → vanlig omsortering
+    // SECTION reorder
+    if (activeType === "section") {
       if (active.id === over.id) return;
-      const sub = board.sections
-        .flatMap((s) => s.subcategories)
-        .find((c) => c.id === sourceSubId);
-      if (!sub) return;
-      // Sortera samma sätt som SubcategoryCard renderar (completed först)
-      const sortedTasks = [...sub.tasks].sort((a, b) => {
-        if (a.completed !== b.completed) return a.completed ? -1 : 1;
-        return a.order - b.order;
-      });
-      const keys = sortedTasks.map(taskKey);
+      const keys = board.sections.map(sectionKey);
       const from = keys.indexOf(String(active.id));
       const to = keys.indexOf(String(over.id));
       if (from < 0 || to < 0) return;
-      const ids = sortedTasks.map((t) => t.id);
+      const ids = board.sections.map((s) => s.id);
       const next = [...ids];
       next.splice(to, 0, next.splice(from, 1)[0]);
-      store.reorderTasks(sourceSubId, next);
-    } else {
-      // Annan subkategori → flytta task
-      store.moveTaskToSubcategory(taskId, targetSubId, insertBeforeTaskId);
+      store.reorderSections(next);
+      return;
+    }
+
+    // SUBCATEGORY reorder (inom sektion)
+    if (activeType === "subcategory") {
+      if (active.id === over.id) return;
+      const activeData = active.data.current as { sectionId?: string };
+      const sectionId = activeData.sectionId;
+      if (!sectionId) return;
+      const section = board.sections.find((s) => s.id === sectionId);
+      if (!section) return;
+      const keys = section.subcategories.map(sectionKey); // _clientKey ?? id
+      const from = keys.indexOf(String(active.id));
+      const to = keys.indexOf(String(over.id));
+      if (from < 0 || to < 0) return;
+      const ids = section.subcategories.map((s) => s.id);
+      const next = [...ids];
+      next.splice(to, 0, next.splice(from, 1)[0]);
+      store.reorderSubcategories(sectionId, next);
+      return;
+    }
+
+    // TASK reorder/move
+    if (activeType === "task") {
+      const activeData = active.data.current as {
+        subcategoryId?: string;
+        taskId?: string;
+      };
+      const sourceSubId = activeData.subcategoryId;
+      const taskId = activeData.taskId;
+      if (!sourceSubId || !taskId) return;
+
+      const overData = over.data.current as
+        | { type?: string; subcategoryId?: string; taskId?: string }
+        | undefined;
+
+      let targetSubId: string | undefined;
+      let insertBeforeTaskId: string | null = null;
+      if (overData?.type === "task" && overData.subcategoryId) {
+        targetSubId = overData.subcategoryId;
+        insertBeforeTaskId = overData.taskId ?? null;
+      } else if (
+        overData?.type === "subcategory-drop" &&
+        overData.subcategoryId
+      ) {
+        targetSubId = overData.subcategoryId;
+        insertBeforeTaskId = null;
+      } else {
+        return;
+      }
+
+      if (targetSubId === sourceSubId) {
+        if (active.id === over.id) return;
+        const sub = board.sections
+          .flatMap((s) => s.subcategories)
+          .find((c) => c.id === sourceSubId);
+        if (!sub) return;
+        const sortedTasks = [...sub.tasks].sort((a, b) => {
+          if (a.completed !== b.completed) return a.completed ? -1 : 1;
+          return a.order - b.order;
+        });
+        const keys = sortedTasks.map(taskKey);
+        const from = keys.indexOf(String(active.id));
+        const to = keys.indexOf(String(over.id));
+        if (from < 0 || to < 0) return;
+        const ids = sortedTasks.map((t) => t.id);
+        const next = [...ids];
+        next.splice(to, 0, next.splice(from, 1)[0]);
+        store.reorderTasks(sourceSubId, next);
+      } else {
+        // Annan subkategori → flytta task
+        store.moveTaskToSubcategory(taskId, targetSubId, insertBeforeTaskId);
+      }
+      return;
     }
   };
 
@@ -383,85 +410,75 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
           className="flex-1 overflow-x-auto overflow-y-hidden scroll-x scrollbar-thin cursor-grab"
         >
           <DndContext
-            sensors={sectionSensors}
+            sensors={sensors}
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <SortableContext
               items={board.sections.map(sectionKey)}
               strategy={horizontalListSortingStrategy}
             >
-              {/* Inre task-DnD spänner ÖVER alla sektioner så tasks
-                  kan dras mellan subkategorier (även över sektionsgränser) */}
-              <DndContext
-                sensors={taskSensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleTaskDragStart}
-                onDragEnd={handleTaskDragEnd}
-                onDragCancel={handleTaskDragCancel}
-              >
-                <div className="h-full flex gap-4 px-5 py-4 items-stretch min-w-min">
-                  <AnimatePresence initial={false}>
-                    {board.sections.map((section, i) => (
-                      <SectionColumn
-                        key={section._clientKey ?? section.id}
-                        section={section}
-                        index={i}
-                        store={store}
-                      />
-                    ))}
-                  </AnimatePresence>
+              <div className="h-full flex gap-4 px-5 py-4 items-stretch min-w-min">
+                <AnimatePresence initial={false}>
+                  {board.sections.map((section, i) => (
+                    <SectionColumn
+                      key={section._clientKey ?? section.id}
+                      section={section}
+                      index={i}
+                      store={store}
+                    />
+                  ))}
+                </AnimatePresence>
 
-                  {/* Add section */}
-                  <div className="w-[320px] flex-shrink-0">
-                    {addingSection ? (
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const v = newSectionRef.current?.value.trim();
-                          if (v) store.addSection(v);
-                          if (newSectionRef.current)
-                            newSectionRef.current.value = "";
+                {/* Add section */}
+                <div className="w-[320px] flex-shrink-0">
+                  {addingSection ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const v = newSectionRef.current?.value.trim();
+                        if (v) store.addSection(v);
+                        if (newSectionRef.current)
+                          newSectionRef.current.value = "";
+                      }}
+                      className="card p-3"
+                    >
+                      <input
+                        ref={newSectionRef}
+                        autoFocus
+                        onBlur={() => setAddingSection(false)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setAddingSection(false);
                         }}
-                        className="card p-3"
-                      >
-                        <input
-                          ref={newSectionRef}
-                          autoFocus
-                          onBlur={() => setAddingSection(false)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape") setAddingSection(false);
-                          }}
-                          placeholder="Kolumnens namn..."
-                          className="w-full text-sm bg-muted/40 rounded px-2 py-1.5 outline-none ring-1 ring-accent/40"
-                        />
-                      </form>
-                    ) : (
-                      <button
-                        onClick={() => setAddingSection(true)}
-                        className="w-full h-12 flex items-center justify-center gap-1.5 text-sm text-fg-muted hover:text-fg border border-dashed border-border hover:border-fg-muted/40 hover:bg-surface-hover/40 transition-all rounded-xl"
-                      >
-                        <Plus className="size-4" />
-                        Ny kolumn
-                      </button>
-                    )}
-                  </div>
+                        placeholder="Kolumnens namn..."
+                        className="w-full text-sm bg-muted/40 rounded px-2 py-1.5 outline-none ring-1 ring-accent/40"
+                      />
+                    </form>
+                  ) : (
+                    <button
+                      onClick={() => setAddingSection(true)}
+                      className="w-full h-12 flex items-center justify-center gap-1.5 text-sm text-fg-muted hover:text-fg border border-dashed border-border hover:border-fg-muted/40 hover:bg-surface-hover/40 transition-all rounded-xl"
+                    >
+                      <Plus className="size-4" />
+                      Ny kolumn
+                    </button>
+                  )}
                 </div>
-
-                <DragOverlay
-                  dropAnimation={{
-                    duration: 220,
-                    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-                  }}
-                >
-                  {activeTask ? <TaskOverlayCard task={activeTask} /> : null}
-                </DragOverlay>
-              </DndContext>
+              </div>
             </SortableContext>
 
-            <DragOverlay>
-              {activeSection ? (
+            {/* Gemensam DragOverlay — visar antingen aktiv section eller task */}
+            <DragOverlay
+              dropAnimation={{
+                duration: 220,
+                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+              }}
+            >
+              {activeTask ? (
+                <TaskOverlayCard task={activeTask} />
+              ) : activeSection ? (
                 <motion.div
                   initial={{ scale: 1 }}
                   animate={{ scale: 1.02 }}

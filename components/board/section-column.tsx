@@ -1,17 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  KeyboardSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-} from "@dnd-kit/core";
+  useSortable,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "framer-motion";
 import { GripVertical, Plus, MoreHorizontal, Trash2 } from "lucide-react";
@@ -64,27 +58,8 @@ export function SectionColumn({ section, index, store }: Props) {
   const [adding, setAdding] = useState(false);
   const newSubRef = useRef<HTMLInputElement>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(KeyboardSensor)
-  );
-
   const subKey = (s: { id: string; _clientKey?: string }) =>
     s._clientKey ?? s.id;
-
-  const handleDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const keys = section.subcategories.map(subKey);
-    const from = keys.indexOf(String(active.id));
-    const to = keys.indexOf(String(over.id));
-    if (from < 0 || to < 0) return;
-    const ids = section.subcategories.map((s) => s.id);
-    const next = [...ids];
-    next.splice(to, 0, next.splice(from, 1)[0]);
-    store.reorderSubcategories(section.id, next);
-  };
 
   return (
     <motion.div
@@ -172,22 +147,20 @@ export function SectionColumn({ section, index, store }: Props) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 pt-2 scrollbar-thin relative z-10">
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext
-            items={section.subcategories.map(subKey)}
-            strategy={verticalListSortingStrategy}
-          >
-            <AnimatePresence initial={false}>
-              {section.subcategories.map((sub) => (
-                <SubcategoryCard
-                  key={sub._clientKey ?? sub.id}
-                  sub={sub}
-                  store={store}
-                />
-              ))}
-            </AnimatePresence>
-          </SortableContext>
-        </DndContext>
+        <SortableContext
+          items={section.subcategories.map(subKey)}
+          strategy={verticalListSortingStrategy}
+        >
+          <AnimatePresence initial={false}>
+            {section.subcategories.map((sub) => (
+              <SubcategoryCard
+                key={sub._clientKey ?? sub.id}
+                sub={sub}
+                store={store}
+              />
+            ))}
+          </AnimatePresence>
+        </SortableContext>
 
         {adding ? (
           <form

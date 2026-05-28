@@ -34,7 +34,10 @@ type Props = {
 export function SubcategoryCard({ sub, store, autoEdit }: Props) {
   const sortableId = sub._clientKey ?? sub.id;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: sortableId });
+    useSortable({
+      id: sortableId,
+      data: { type: "subcategory", sectionId: sub.sectionId, subId: sub.id },
+    });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -44,7 +47,10 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
   const [adding, setAdding] = useState(false);
   const newTaskRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const prevAllCompleted = useRef(false);
+  // null = ej initialiserad → första effekt-körningen sätter värdet utan
+  // att avfyra confetti. Så den triggas bara på en faktisk transition
+  // false → true under sessionen (inte vid sidladdning).
+  const prevAllCompleted = useRef<boolean | null>(null);
 
   // Sortera: completed först (åker överst), sedan efter order
   const sorted = [...sub.tasks].sort((a, b) => {
@@ -56,8 +62,12 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
   const completed = sub.tasks.filter((t) => t.completed).length;
   const allDone = total > 0 && completed === total;
 
-  // Fyrverkeri när sista task bockas av
+  // Fyrverkeri när sista task bockas av (bara vid äkta transition)
   useEffect(() => {
+    if (prevAllCompleted.current === null) {
+      prevAllCompleted.current = allDone;
+      return;
+    }
     if (allDone && !prevAllCompleted.current && cardRef.current) {
       const rect = cardRef.current.getBoundingClientRect();
       const x = (rect.left + rect.width / 2) / window.innerWidth;
