@@ -32,6 +32,11 @@ type State = {
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
   reorderTasks: (subcategoryId: string, taskIds: string[]) => void;
+  moveTaskToSubcategory: (
+    taskId: string,
+    toSubcategoryId: string,
+    insertBeforeTaskId: string | null
+  ) => void;
 };
 
 const findSection = (board: Board, id: string) =>
@@ -424,6 +429,93 @@ export const createBoardStore = (initialBoard: Board) =>
       api
         .reorderTask(moved.id, subcategoryId, next?.id ?? null, prev?.id ?? null)
         .catch(console.error);
+    },
+
+    /**
+     * Flytta en task till en annan subkategori vid en specifik position.
+     * - `taskId`: task som flyttas
+     * - `toSubcategoryId`: målsubkategori
+     * - `insertBeforeTaskId`: id på task som ska komma EFTER den flyttade
+     *   i mål-listan. null = lägg sist.
+     */
+    moveTaskToSubcategory: (
+      taskId: string,
+      toSubcategoryId: string,
+      insertBeforeTaskId: string | null
+    ) => {
+      const board = get().board;
+      // Hitta source
+      let fromSub: Subcategory | null = null;
+      let task: Task | null = null;
+      for (const s of board.sections) {
+        for (const c of s.subcategories) {
+          const t = c.tasks.find((x) => x.id === taskId);
+          if (t) {
+            fromSub = c;
+            task = t;
+            break;
+          }
+        }
+        if (task) break;
+      }
+      if (!task || !fromSub) return;
+      if (fromSub.id === toSubcategoryId) return; // not a cross-move
+
+      const toSubFound = findSubcategory(board, toSubcategoryId);
+      if (!toSubFound) return;
+
+      // Bygg ny task med uppdaterat subcategoryId
+      // Beräkna ny order baserat på target-listans grannar
+      const targetTasks = toSubFound.sub.tasks;
+      const insertIndex =
+        insertBeforeTaskId == null
+          ? targetTasks.length
+          : Math.max(
+              0,
+              targetTasks.findIndex((t) => t.id === insertBeforeTaskId)
+            );
+      const prevOrder = targetTasks[insertIndex - 1]?.order ?? null;
+      const nextOrder = targetTasks[insertIndex]?.order ?? null;
+      const newOrder = computeOrder(prevOrder, nextOrder);
+
+      const movedTask: Task = {
+        ...task,
+        subcategoryId: toSubcategoryId,
+        order: newOrder,
+      };
+
+      // Uppdatera state: ta bort från fromSub, lägg in i toSub vid rätt index
+      set((st) => ({
+        board: {
+          ...st.board,
+          sections: st.board.sections.map((s) => ({
+            ...s,
+            subcategories: s.subcategories.map((sub) => {
+              if (sub.id === fromSub!.id) {
+                return {
+                  ...sub,
+                  tasks: sub.tasks.filter((t) => t.id !== taskId),
+                };
+              }
+              if (sub.id === toSubcategoryId) {
+                const newList = [...sub.tasks];
+                newList.splice(insertIndex, 0, movedTask);
+                return { ...sub, tasks: newList };
+              }
+              return sub;
+            }),
+          })),
+        },
+      }));
+
+      // Skicka till server — passar med subcategoryId så servern uppdaterar fk:n
+      if (!taskId.startsWith("tmp_")) {
+        const afterId = targetTasks[insertIndex - 1]?.id ?? null;
+        const beforeId = insertBeforeTaskId;
+        api
+          .reorderTask(taskId, toSubcategoryId, beforeId, afterId)
+          .catch(console.error);
+      }
     },
   }));
 

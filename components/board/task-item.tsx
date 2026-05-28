@@ -28,7 +28,14 @@ export function TaskItem({ task, onToggle, onRename, onDelete, autoEdit }: Props
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: sortableId });
+  } = useSortable({
+    id: sortableId,
+    data: {
+      type: "task",
+      subcategoryId: task.subcategoryId,
+      taskId: task.id,
+    },
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),

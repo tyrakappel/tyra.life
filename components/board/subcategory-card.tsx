@@ -1,19 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  KeyboardSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-} from "@dnd-kit/core";
+  useSortable,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "framer-motion";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
@@ -21,7 +14,7 @@ import confetti from "canvas-confetti";
 
 import type { Subcategory } from "@/lib/types";
 import { InlineEdit } from "./inline-edit";
-import { TaskItem, TaskOverlayCard } from "./task-item";
+import { TaskItem } from "./task-item";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -82,38 +75,18 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
     prevAllCompleted.current = allDone;
   }, [allDone]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(KeyboardSensor)
-  );
-
-  const [activeTaskKey, setActiveTaskKey] = useState<string | null>(null);
   // Använd _clientKey som dnd-id för stabilitet över id-byten
   const taskKey = (t: typeof sorted[number]) => t._clientKey ?? t.id;
-  const activeTask = activeTaskKey
-    ? sorted.find((t) => taskKey(t) === activeTaskKey)
-    : null;
 
-  const handleDragStart = (e: DragStartEvent) =>
-    setActiveTaskKey(String(e.active.id));
-
-  const handleDragEnd = (e: DragEndEvent) => {
-    setActiveTaskKey(null);
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const keys = sorted.map(taskKey);
-    const from = keys.indexOf(String(active.id));
-    const to = keys.indexOf(String(over.id));
-    if (from < 0 || to < 0) return;
-    // Bygg den nya ordningen som server-id:n (det är vad store + API behöver)
-    const ids = sorted.map((t) => t.id);
-    const next = [...ids];
-    next.splice(to, 0, next.splice(from, 1)[0]);
-    store.reorderTasks(sub.id, next);
-  };
-
-  const handleDragCancel = () => setActiveTaskKey(null);
+  // Gör hela subkategorin droppable så användaren kan släppa en task
+  // på den för att flytta över till denna subkategori (inkl. tomma)
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: `sub-droppable-${sub._clientKey ?? sub.id}`,
+    data: {
+      type: "subcategory-drop",
+      subcategoryId: sub.id,
+    },
+  });
 
   return (
     <motion.div
@@ -166,40 +139,36 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
           </button>
         </div>
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
+        <SortableContext
+          items={sorted.map(taskKey)}
+          strategy={verticalListSortingStrategy}
         >
-          <SortableContext
-            items={sorted.map(taskKey)}
-            strategy={verticalListSortingStrategy}
+          <div
+            ref={setDroppableRef}
+            className={cn(
+              "space-y-0.5 rounded-lg transition-colors min-h-[8px]",
+              isOver && sorted.length === 0 && "bg-accent/10 outline-2 outline-dashed outline-accent/40 -mx-1 px-1 py-2",
+              isOver && sorted.length > 0 && "bg-accent/5"
+            )}
           >
-            <div className="space-y-0.5">
-              <AnimatePresence initial={false}>
-                {sorted.map((t) => (
-                  <TaskItem
-                    key={t._clientKey ?? t.id}
-                    task={t}
-                    onToggle={() => store.toggleTask(t.id)}
-                    onRename={(title) => store.renameTask(t.id, title)}
-                    onDelete={() => store.deleteTask(t.id)}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          </SortableContext>
-          <DragOverlay
-            dropAnimation={{
-              duration: 220,
-              easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-            }}
-          >
-            {activeTask ? <TaskOverlayCard task={activeTask} /> : null}
-          </DragOverlay>
-        </DndContext>
+            <AnimatePresence initial={false}>
+              {sorted.map((t) => (
+                <TaskItem
+                  key={t._clientKey ?? t.id}
+                  task={t}
+                  onToggle={() => store.toggleTask(t.id)}
+                  onRename={(title) => store.renameTask(t.id, title)}
+                  onDelete={() => store.deleteTask(t.id)}
+                />
+              ))}
+            </AnimatePresence>
+            {isOver && sorted.length === 0 && (
+              <div className="text-xs text-accent text-center py-1.5 font-medium">
+                Släpp för att flytta hit
+              </div>
+            )}
+          </div>
+        </SortableContext>
 
         {adding ? (
           <form

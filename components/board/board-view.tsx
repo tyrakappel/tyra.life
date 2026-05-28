@@ -23,6 +23,7 @@ import { api } from "@/lib/api-client";
 import { snapshotToBoard } from "@/lib/snapshot-to-board";
 import type { SnapshotData } from "@/lib/snapshot";
 import { SectionColumn } from "./section-column";
+import { TaskOverlayCard } from "./task-item";
 import { useHorizontalScroll } from "./use-horizontal-scroll";
 import { useBoardPan } from "./use-board-pan";
 import { VersionMenu } from "./version-menu";
@@ -43,6 +44,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const store = useStore();
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeTaskKey, setActiveTaskKey] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [pickingEmoji, setPickingEmoji] = useState(false);
@@ -90,8 +92,13 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const scrollRef = useHorizontalScroll<HTMLDivElement>();
   useBoardPan(scrollRef);
 
-  const sensors = useSensors(
+  const sectionSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+    useSensor(KeyboardSensor)
+  );
+  const taskSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor)
   );
@@ -100,6 +107,8 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
 
   const sectionKey = (s: { id: string; _clientKey?: string }) =>
     s._clientKey ?? s.id;
+  const taskKey = (t: { id: string; _clientKey?: string }) =>
+    t._clientKey ?? t.id;
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
@@ -118,6 +127,81 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const activeSection = activeId
     ? board.sections.find((s) => sectionKey(s) === activeId)
     : null;
+
+  // ============ Task DnD (cross-subcategory) ============
+  // Hitta alla tasks + deras subcategoryId i ett enda pass
+  const findTaskByKey = (key: string) => {
+    for (const s of board.sections) {
+      for (const sub of s.subcategories) {
+        const t = sub.tasks.find((x) => taskKey(x) === key);
+        if (t) return { task: t, subcategoryId: sub.id };
+      }
+    }
+    return null;
+  };
+
+  const activeTask = activeTaskKey ? findTaskByKey(activeTaskKey)?.task : null;
+
+  const handleTaskDragStart = (e: DragStartEvent) =>
+    setActiveTaskKey(String(e.active.id));
+
+  const handleTaskDragCancel = () => setActiveTaskKey(null);
+
+  const handleTaskDragEnd = (e: DragEndEvent) => {
+    setActiveTaskKey(null);
+    const { active, over } = e;
+    if (!over) return;
+
+    const activeData = active.data.current as
+      | { type?: string; subcategoryId?: string; taskId?: string }
+      | undefined;
+    if (activeData?.type !== "task") return;
+    const sourceSubId = activeData.subcategoryId;
+    const taskId = activeData.taskId;
+    if (!sourceSubId || !taskId) return;
+
+    const overData = over.data.current as
+      | { type?: string; subcategoryId?: string; taskId?: string }
+      | undefined;
+
+    // Bestäm målsubkategori + ev. task att infogas före
+    let targetSubId: string | undefined;
+    let insertBeforeTaskId: string | null = null;
+    if (overData?.type === "task" && overData.subcategoryId) {
+      targetSubId = overData.subcategoryId;
+      insertBeforeTaskId = overData.taskId ?? null;
+    } else if (overData?.type === "subcategory-drop" && overData.subcategoryId) {
+      targetSubId = overData.subcategoryId;
+      insertBeforeTaskId = null; // läggs sist
+    } else {
+      return;
+    }
+
+    if (targetSubId === sourceSubId) {
+      // Samma subkategori → vanlig omsortering
+      if (active.id === over.id) return;
+      const sub = board.sections
+        .flatMap((s) => s.subcategories)
+        .find((c) => c.id === sourceSubId);
+      if (!sub) return;
+      // Sortera samma sätt som SubcategoryCard renderar (completed först)
+      const sortedTasks = [...sub.tasks].sort((a, b) => {
+        if (a.completed !== b.completed) return a.completed ? -1 : 1;
+        return a.order - b.order;
+      });
+      const keys = sortedTasks.map(taskKey);
+      const from = keys.indexOf(String(active.id));
+      const to = keys.indexOf(String(over.id));
+      if (from < 0 || to < 0) return;
+      const ids = sortedTasks.map((t) => t.id);
+      const next = [...ids];
+      next.splice(to, 0, next.splice(from, 1)[0]);
+      store.reorderTasks(sourceSubId, next);
+    } else {
+      // Annan subkategori → flytta task
+      store.moveTaskToSubcategory(taskId, targetSubId, insertBeforeTaskId);
+    }
+  };
 
   // Auto-snapshot: debounced ~2s efter senaste ändring av board-state.
   // Endpoint:en upsertar — det finns alltid bara EN auto-snapshot per board.
@@ -299,7 +383,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
           className="flex-1 overflow-x-auto overflow-y-hidden scroll-x scrollbar-thin cursor-grab"
         >
           <DndContext
-            sensors={sensors}
+            sensors={sectionSensors}
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
@@ -308,53 +392,72 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
               items={board.sections.map(sectionKey)}
               strategy={horizontalListSortingStrategy}
             >
-              <div className="h-full flex gap-4 px-5 py-4 items-stretch min-w-min">
-                <AnimatePresence initial={false}>
-                  {board.sections.map((section, i) => (
-                    <SectionColumn
-                      key={section._clientKey ?? section.id}
-                      section={section}
-                      index={i}
-                      store={store}
-                    />
-                  ))}
-                </AnimatePresence>
-
-                {/* Add section */}
-                <div className="w-[320px] flex-shrink-0">
-                  {addingSection ? (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const v = newSectionRef.current?.value.trim();
-                        if (v) store.addSection(v);
-                        if (newSectionRef.current)
-                          newSectionRef.current.value = "";
-                      }}
-                      className="card p-3"
-                    >
-                      <input
-                        ref={newSectionRef}
-                        autoFocus
-                        onBlur={() => setAddingSection(false)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") setAddingSection(false);
-                        }}
-                        placeholder="Kolumnens namn..."
-                        className="w-full text-sm bg-muted/40 rounded px-2 py-1.5 outline-none ring-1 ring-accent/40"
+              {/* Inre task-DnD spänner ÖVER alla sektioner så tasks
+                  kan dras mellan subkategorier (även över sektionsgränser) */}
+              <DndContext
+                sensors={taskSensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleTaskDragStart}
+                onDragEnd={handleTaskDragEnd}
+                onDragCancel={handleTaskDragCancel}
+              >
+                <div className="h-full flex gap-4 px-5 py-4 items-stretch min-w-min">
+                  <AnimatePresence initial={false}>
+                    {board.sections.map((section, i) => (
+                      <SectionColumn
+                        key={section._clientKey ?? section.id}
+                        section={section}
+                        index={i}
+                        store={store}
                       />
-                    </form>
-                  ) : (
-                    <button
-                      onClick={() => setAddingSection(true)}
-                      className="w-full h-12 flex items-center justify-center gap-1.5 text-sm text-fg-muted hover:text-fg border border-dashed border-border hover:border-fg-muted/40 hover:bg-surface-hover/40 transition-all rounded-xl"
-                    >
-                      <Plus className="size-4" />
-                      Ny kolumn
-                    </button>
-                  )}
+                    ))}
+                  </AnimatePresence>
+
+                  {/* Add section */}
+                  <div className="w-[320px] flex-shrink-0">
+                    {addingSection ? (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const v = newSectionRef.current?.value.trim();
+                          if (v) store.addSection(v);
+                          if (newSectionRef.current)
+                            newSectionRef.current.value = "";
+                        }}
+                        className="card p-3"
+                      >
+                        <input
+                          ref={newSectionRef}
+                          autoFocus
+                          onBlur={() => setAddingSection(false)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") setAddingSection(false);
+                          }}
+                          placeholder="Kolumnens namn..."
+                          className="w-full text-sm bg-muted/40 rounded px-2 py-1.5 outline-none ring-1 ring-accent/40"
+                        />
+                      </form>
+                    ) : (
+                      <button
+                        onClick={() => setAddingSection(true)}
+                        className="w-full h-12 flex items-center justify-center gap-1.5 text-sm text-fg-muted hover:text-fg border border-dashed border-border hover:border-fg-muted/40 hover:bg-surface-hover/40 transition-all rounded-xl"
+                      >
+                        <Plus className="size-4" />
+                        Ny kolumn
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+
+                <DragOverlay
+                  dropAnimation={{
+                    duration: 220,
+                    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                  }}
+                >
+                  {activeTask ? <TaskOverlayCard task={activeTask} /> : null}
+                </DragOverlay>
+              </DndContext>
             </SortableContext>
 
             <DragOverlay>
