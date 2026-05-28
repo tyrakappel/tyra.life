@@ -480,13 +480,11 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
               </div>
             </SortableContext>
 
-            {/* Gemensam DragOverlay — visar antingen aktiv section eller task */}
-            <DragOverlay
-              dropAnimation={{
-                duration: 220,
-                easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-            >
+            {/* Gemensam DragOverlay — visar antingen aktiv section eller task.
+                dropAnimation=null så vi slipper buggen där en cross-list-task
+                blir osynlig efter drop (animationen försöker återgå till
+                dragobjektets gamla DOM-position som vi just flyttat bort). */}
+            <DragOverlay dropAnimation={null}>
               {activeTask ? (
                 <TaskOverlayCard task={activeTask} />
               ) : activeSection ? (
