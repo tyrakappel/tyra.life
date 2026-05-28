@@ -34,6 +34,7 @@ import { BoardActionsMenu } from "./board-actions-menu";
 import { ViewToggle, type ViewMode } from "./view-toggle";
 import { LifeCurveView } from "./life-curve-view";
 import { EmojiPicker } from "./emoji-picker";
+import { APP_VERSION } from "@/lib/version";
 
 export function BoardView({ initialBoard }: { initialBoard: Board }) {
   // Skapa store en gång per initialBoard.id
@@ -253,6 +254,12 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             />
             <ColorThemeMenu />
           </div>
+          <span
+            className="text-xs text-fg-muted/60 font-medium tabular-nums select-none"
+            title={`Tyra Life v${APP_VERSION}`}
+          >
+            v{APP_VERSION}
+          </span>
           <a
             href="/api/auth/signout"
             className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl bg-muted/40 border border-border/60 text-fg-muted hover:text-danger hover:bg-surface-hover hover:border-danger/30 active:scale-95 transition-all duration-150 ease-snap text-sm font-medium"
