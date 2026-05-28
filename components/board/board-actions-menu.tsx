@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MoreHorizontal, Pencil, CopyPlus, Trash2, SmilePlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api-client";
+import { useNavStore } from "@/lib/nav-store";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -12,7 +13,7 @@ type Props = {
   boardName: string;
   boardEmoji: string | null;
   onRequestRename: () => void;
-  onChangeEmoji: (emoji: string | null) => void;
+  onRequestEmoji: () => void;
 };
 
 export function BoardActionsMenu({
@@ -20,9 +21,10 @@ export function BoardActionsMenu({
   boardName,
   boardEmoji,
   onRequestRename,
-  onChangeEmoji,
+  onRequestEmoji,
 }: Props) {
   const router = useRouter();
+  const startNav = useNavStore((s) => s.start);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -43,12 +45,7 @@ export function BoardActionsMenu({
 
   const handleChangeEmoji = () => {
     setOpen(false);
-    const emoji = window.prompt(
-      "Ny emoji (lämna tomt för att ta bort):",
-      boardEmoji ?? ""
-    );
-    if (emoji === null) return;
-    onChangeEmoji(emoji.trim() || null);
+    onRequestEmoji();
   };
 
   const handleDuplicate = async () => {
@@ -61,6 +58,7 @@ export function BoardActionsMenu({
       }
       const r = await api.duplicateBoard(boardId, customName.trim());
       setOpen(false);
+      startNav(r.id);
       router.push(`/board/${r.id}`);
     } catch (err) {
       console.error(err);
@@ -87,6 +85,7 @@ export function BoardActionsMenu({
       await api.deleteBoard(boardId);
       const other = boards.find((b) => b.id !== boardId);
       setOpen(false);
+      startNav(other?.id);
       if (other) router.push(`/board/${other.id}`);
       else router.push("/");
     } catch (err) {

@@ -33,6 +33,7 @@ import { BoardSwitcher } from "./board-switcher";
 import { BoardActionsMenu } from "./board-actions-menu";
 import { ViewToggle, type ViewMode } from "./view-toggle";
 import { LifeCurveView } from "./life-curve-view";
+import { EmojiPicker } from "./emoji-picker";
 
 export function BoardView({ initialBoard }: { initialBoard: Board }) {
   // Skapa store en gång per initialBoard.id
@@ -43,6 +44,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const [pickingEmoji, setPickingEmoji] = useState(false);
 
   // ViewMode synkad mot URL ?view=plan|curve så reload behåller flik.
   // Använder window.location direkt + history.replaceState för att undvika
@@ -187,7 +189,13 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
     : null;
 
   return (
-    <div className="h-screen flex flex-col bg-bg">
+    <motion.div
+      key={board.id}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      className="h-screen flex flex-col bg-bg"
+    >
       {/* Header */}
       <header className="flex-shrink-0 px-5 py-3 flex items-center gap-3 border-b border-border/60">
         {previewSnapshot ? (
@@ -199,28 +207,37 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
           </div>
         ) : (
           <div className="flex items-center gap-0.5">
-            <BoardSwitcher
-              boardId={board.id}
-              boardName={board.name}
-              boardEmoji={board.emoji}
-              editing={editingName}
-              onEditCancel={() => setEditingName(false)}
-              onEditSubmit={(name) => {
-                store.renameBoard(name);
-                setEditingName(false);
-              }}
-            />
+            <div className="relative">
+              <BoardSwitcher
+                boardId={board.id}
+                boardName={board.name}
+                boardEmoji={board.emoji}
+                editing={editingName}
+                onEditCancel={() => setEditingName(false)}
+                onEditSubmit={(name) => {
+                  store.renameBoard(name);
+                  setEditingName(false);
+                }}
+              />
+              <EmojiPicker
+                open={pickingEmoji}
+                currentEmoji={board.emoji}
+                onSelect={(emoji) => {
+                  api
+                    .updateBoard(board.id, { emoji })
+                    .then(() => window.location.reload())
+                    .catch(console.error);
+                  setPickingEmoji(false);
+                }}
+                onClose={() => setPickingEmoji(false)}
+              />
+            </div>
             <BoardActionsMenu
               boardId={board.id}
               boardName={board.name}
               boardEmoji={board.emoji}
               onRequestRename={() => setEditingName(true)}
-              onChangeEmoji={(emoji) => {
-                api
-                  .updateBoard(board.id, { emoji })
-                  .then(() => window.location.reload())
-                  .catch(console.error);
-              }}
+              onRequestEmoji={() => setPickingEmoji(true)}
             />
             <div className="ml-3">
               <ViewToggle view={viewMode} onChange={setViewMode} />
@@ -348,6 +365,6 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
           </DndContext>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Plus, LayoutGrid } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api-client";
+import { useNavStore } from "@/lib/nav-store";
 import { cn } from "@/lib/utils";
 
 type BoardSummary = {
@@ -37,10 +38,18 @@ export function BoardSwitcher({
   onEditSubmit,
 }: Props) {
   const router = useRouter();
+  const startNav = useNavStore((s) => s.start);
   const [open, setOpen] = useState(false);
   const [boards, setBoards] = useState<BoardSummary[]>([]);
   const [creating, setCreating] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  /** Navigerar till annan board och visar progress-bar */
+  const goToBoard = (id: string) => {
+    if (id === boardId) return;
+    startNav(id);
+    router.push(`/board/${id}`);
+  };
   const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(boardName);
   const cancelledRef = useRef(false);
@@ -89,7 +98,7 @@ export function BoardSwitcher({
       if (!targetBoard) return;
       if (targetBoard.id === boardId) return;
       e.preventDefault();
-      router.push(`/board/${targetBoard.id}`);
+      goToBoard(targetBoard.id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -108,8 +117,8 @@ export function BoardSwitcher({
   }, [editing, boardName]);
 
   const handleSelect = (id: string) => {
-    if (id !== boardId) router.push(`/board/${id}`);
     setOpen(false);
+    goToBoard(id);
   };
 
   const handleNew = async () => {
