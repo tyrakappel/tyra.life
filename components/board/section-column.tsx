@@ -88,8 +88,11 @@ export function SectionColumn({ section, index, store }: Props) {
       layout
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        "section-column card flex flex-col w-[320px] flex-shrink-0 max-h-full",
-        isDragging && "opacity-60"
+        "section-column card flex flex-col w-[320px] flex-shrink-0 max-h-full relative",
+        isDragging && "opacity-60",
+        // Lyft hela kolumnen ovanför grannar när menyn är öppen så att
+        // dropdown:en inte göms under nästa kolumn
+        menuOpen && "z-30"
       )}
     >
       <div
