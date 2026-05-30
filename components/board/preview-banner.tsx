@@ -67,7 +67,7 @@ export function PreviewBanner({
           className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 active:bg-accent/80 text-accent-fg text-sm font-semibold py-2 px-4 rounded-full shadow-md shadow-accent/30 hover:shadow-lg hover:shadow-accent/40 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 ease-snap"
         >
           <RotateCcw className="size-4" />
-          {restoring ? "Återställer..." : "Rulla tillbaka till denna"}
+          {restoring ? "Återställer..." : "Ersätt liveversion med denna"}
         </button>
       </div>
     </motion.div>
