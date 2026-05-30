@@ -295,7 +295,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
     if (!previewSnapshot) return;
     if (
       !confirm(
-        "Ersätt nuvarande liveversion med denna? En säkerhetskopia av nuvarande state sparas automatiskt."
+        "Rulla tillbaka till denna version?\n\nEn säkerhetskopia av ditt nuvarande arbete sparas automatiskt under 'Före rollback' i versionshistoriken — du kan alltid återgå till det."
       )
     )
       return;
