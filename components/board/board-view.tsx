@@ -158,17 +158,44 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
 
     // SUBCATEGORY reorder (inom sektion)
     if (activeType === "subcategory") {
-      if (active.id === over.id) return;
-      const activeData = active.data.current as { sectionId?: string };
+      const activeData = active.data.current as {
+        sectionId?: string;
+        subId?: string;
+      };
       const sectionId = activeData.sectionId;
-      if (!sectionId) return;
+      const fromSubId = activeData.subId;
+      if (!sectionId || !fromSubId) return;
       const section = board.sections.find((s) => s.id === sectionId);
       if (!section) return;
-      const keys = section.subcategories.map(sectionKey); // _clientKey ?? id
-      const from = keys.indexOf(String(active.id));
-      const to = keys.indexOf(String(over.id));
-      if (from < 0 || to < 0) return;
+
+      // Bestäm målet — kan vara en annan subkategori (sortable) ELLER en
+      // task inom någon subkat (closestCenter kan välja en task som närmast)
+      // ELLER subkat-kortets droppable.
+      const overData = over.data.current as
+        | {
+            type?: string;
+            subId?: string;
+            subcategoryId?: string;
+          }
+        | undefined;
+      let targetSubId: string | undefined;
+      if (overData?.type === "subcategory" && overData.subId) {
+        targetSubId = overData.subId;
+      } else if (
+        overData?.type === "subcategory-drop" &&
+        overData.subcategoryId
+      ) {
+        targetSubId = overData.subcategoryId;
+      } else if (overData?.type === "task" && overData.subcategoryId) {
+        // Användaren släppte över en task i en subkat → flytta hit
+        targetSubId = overData.subcategoryId;
+      }
+      if (!targetSubId || targetSubId === fromSubId) return;
+
       const ids = section.subcategories.map((s) => s.id);
+      const from = ids.indexOf(fromSubId);
+      const to = ids.indexOf(targetSubId);
+      if (from < 0 || to < 0) return;
       const next = [...ids];
       next.splice(to, 0, next.splice(from, 1)[0]);
       store.reorderSubcategories(sectionId, next);
