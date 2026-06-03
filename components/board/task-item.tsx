@@ -54,9 +54,9 @@ export function TaskItem({ task, onToggle, onRename, onDelete, autoEdit }: Props
       className={cn(
         "group flex items-start gap-2 px-2 py-1.5 rounded-lg",
         "hover:bg-surface-hover/70 transition-colors",
-        // När man drar: fadar ut original till en streckad "ghost"-platshållare
+        // Placeholder (original) när task dras — tydlig "snap-spot"
         isDragging &&
-          "opacity-40 outline outline-2 outline-dashed outline-accent/40 bg-accent/5"
+          "bg-accent/15 outline outline-2 outline-dashed outline-accent/60 [&>*]:opacity-30 [&>*]:transition-opacity"
       )}
     >
       <button
@@ -107,19 +107,19 @@ export function TaskItem({ task, onToggle, onRename, onDelete, autoEdit }: Props
  */
 export function TaskOverlayCard({ task }: { task: Task }) {
   return (
-    <div className="card flex items-start gap-2 px-2 py-1.5 rounded-lg shadow-xl shadow-accent/30 ring-1 ring-accent/40 cursor-grabbing scale-[1.02] rotate-[0.5deg]">
-      <div className="pt-0.5 text-fg-muted">
-        <GripVertical className="size-3.5" />
+    <div className="card flex items-start gap-2 px-2.5 py-2 rounded-lg shadow-2xl shadow-accent/40 ring-2 ring-accent/50 cursor-grabbing scale-[1.04] rotate-[1deg] bg-surface">
+      <div className="pt-0.5 text-accent">
+        <GripVertical className="size-4" />
       </div>
       <input
         type="checkbox"
         checked={task.completed}
         readOnly
-        className="mt-1 size-4 rounded border-border accent-accent pointer-events-none"
+        className="mt-0.5 size-4 rounded border-border accent-accent pointer-events-none"
       />
       <div
         className={cn(
-          "text-sm leading-snug flex-1",
+          "text-sm leading-snug flex-1 font-medium",
           task.completed && "line-through text-fg-muted"
         )}
       >

@@ -1,11 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import {
-  useSortable,
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "framer-motion";
 import { GripVertical, Plus, MoreHorizontal, Trash2 } from "lucide-react";
@@ -57,9 +53,6 @@ export function SectionColumn({ section, index, store }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const newSubRef = useRef<HTMLInputElement>(null);
-
-  const subKey = (s: { id: string; _clientKey?: string }) =>
-    s._clientKey ?? s.id;
 
   return (
     <motion.div
@@ -147,20 +140,29 @@ export function SectionColumn({ section, index, store }: Props) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 pt-2 scrollbar-thin relative z-10">
-        <SortableContext
-          items={section.subcategories.map(subKey)}
-          strategy={verticalListSortingStrategy}
-        >
-          <AnimatePresence initial={false}>
-            {section.subcategories.map((sub) => (
-              <SubcategoryCard
-                key={sub._clientKey ?? sub.id}
-                sub={sub}
-                store={store}
-              />
-            ))}
-          </AnimatePresence>
-        </SortableContext>
+        <AnimatePresence initial={false}>
+          {section.subcategories.map((sub, i) => (
+            <SubcategoryCard
+              key={sub._clientKey ?? sub.id}
+              sub={sub}
+              index={i}
+              total={section.subcategories.length}
+              onMoveUp={() => {
+                if (i === 0) return;
+                const ids = section.subcategories.map((s) => s.id);
+                [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]];
+                store.reorderSubcategories(section.id, ids);
+              }}
+              onMoveDown={() => {
+                if (i === section.subcategories.length - 1) return;
+                const ids = section.subcategories.map((s) => s.id);
+                [ids[i + 1], ids[i]] = [ids[i], ids[i + 1]];
+                store.reorderSubcategories(section.id, ids);
+              }}
+              store={store}
+            />
+          ))}
+        </AnimatePresence>
 
         {adding ? (
           <form

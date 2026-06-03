@@ -2,14 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  useSortable,
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "framer-motion";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { ChevronUp, ChevronDown, Plus, Trash2 } from "lucide-react";
 import confetti from "canvas-confetti";
 
 import type { Subcategory } from "@/lib/types";
@@ -19,6 +17,14 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   sub: Subcategory;
+  /** Subkategorins index inom sektionen (för pil-aktivering) */
+  index: number;
+  /** Totala antalet subkategorier i sektionen */
+  total: number;
+  /** Anropas när användaren klickar upp-pilen */
+  onMoveUp: () => void;
+  /** Anropas när användaren klickar ner-pilen */
+  onMoveDown: () => void;
   store: {
     renameSubcategory: (id: string, title: string) => void;
     deleteSubcategory: (id: string) => void;
@@ -31,19 +37,15 @@ type Props = {
   autoEdit?: boolean;
 };
 
-export function SubcategoryCard({ sub, store, autoEdit }: Props) {
-  const sortableId = sub._clientKey ?? sub.id;
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({
-      id: sortableId,
-      data: { type: "subcategory", sectionId: sub.sectionId, subId: sub.id },
-    });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
+export function SubcategoryCard({
+  sub,
+  index,
+  total,
+  onMoveUp,
+  onMoveDown,
+  store,
+  autoEdit,
+}: Props) {
   const [adding, setAdding] = useState(false);
   const newTaskRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -58,9 +60,9 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
     return a.order - b.order;
   });
 
-  const total = sub.tasks.length;
+  const totalTasks = sub.tasks.length;
   const completed = sub.tasks.filter((t) => t.completed).length;
-  const allDone = total > 0 && completed === total;
+  const allDone = totalTasks > 0 && completed === totalTasks;
 
   // Fyrverkeri när sista task bockas av (bara vid äkta transition)
   useEffect(() => {
@@ -106,18 +108,13 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
     },
   });
 
-  // Kombinera refar — kortet är BÅDE sortable (för subcat-reorder) och droppable (för task-drop)
-  const combinedRef = (node: HTMLElement | null) => {
-    setNodeRef(node);
-    setCardDroppableRef(node);
-  };
-
   const isOver = isOverList || isOverCard;
+  const canMoveUp = index > 0;
+  const canMoveDown = index < total - 1;
 
   return (
     <motion.div
-      ref={combinedRef}
-      style={style}
+      ref={setCardDroppableRef}
       layout
       initial={{ opacity: 0, y: 6, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -125,22 +122,45 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "card p-3 mb-2 group/sub transition-shadow",
-        isDragging && "opacity-50 cursor-grabbing",
         allDone && "ring-2 ring-success/40",
         // När en task dras hit visas en mjuk accent-ring runt kortet
-        isOver && !isDragging && "ring-2 ring-accent/40 shadow-card-hover"
+        isOver && "ring-2 ring-accent/40 shadow-card-hover"
       )}
     >
       <div ref={cardRef}>
         <div className="flex items-center gap-1.5 mb-2">
-          <button
-            {...attributes}
-            {...listeners}
-            className="touch-none cursor-grab active:cursor-grabbing opacity-0 group-hover/sub:opacity-100 transition-opacity text-fg-muted/60 hover:text-fg-muted"
-            aria-label="Dra subkategori"
-          >
-            <GripVertical className="size-4" />
-          </button>
+          <div className="flex flex-col items-center gap-0 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+            <button
+              type="button"
+              onClick={onMoveUp}
+              disabled={!canMoveUp}
+              className={cn(
+                "inline-flex items-center justify-center size-4 rounded transition-colors",
+                canMoveUp
+                  ? "text-fg-muted/70 hover:text-fg hover:bg-surface-hover"
+                  : "text-fg-muted/20 cursor-not-allowed"
+              )}
+              aria-label="Flytta upp"
+              title="Flytta upp"
+            >
+              <ChevronUp className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onMoveDown}
+              disabled={!canMoveDown}
+              className={cn(
+                "inline-flex items-center justify-center size-4 rounded transition-colors",
+                canMoveDown
+                  ? "text-fg-muted/70 hover:text-fg hover:bg-surface-hover"
+                  : "text-fg-muted/20 cursor-not-allowed"
+              )}
+              aria-label="Flytta ner"
+              title="Flytta ner"
+            >
+              <ChevronDown className="size-3.5" />
+            </button>
+          </div>
           <div className="flex-1 min-w-0 font-medium text-sm">
             <InlineEdit
               value={sub.title}
@@ -156,7 +176,7 @@ export function SubcategoryCard({ sub, store, autoEdit }: Props) {
                 : "bg-muted text-fg-muted"
             )}
           >
-            {completed}/{total}
+            {completed}/{totalTasks}
           </span>
           <button
             onClick={() => store.deleteSubcategory(sub.id)}
