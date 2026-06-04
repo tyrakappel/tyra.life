@@ -4,18 +4,18 @@ import { Providers } from "@/components/providers";
 import { APP_VERSION } from "@/lib/version";
 
 export const metadata: Metadata = {
-  title: "Tyralife",
+  title: "Levalife",
   description: "Din livsplan, på ett ställe.",
-  applicationName: "Tyralife",
+  applicationName: "Levalife",
   appleWebApp: {
-    title: "Tyralife",
+    title: "Levalife",
     capable: true,
     statusBarStyle: "default",
   },
   openGraph: {
-    title: "Tyralife",
+    title: "Levalife",
     description: "Din livsplan, på ett ställe.",
-    siteName: "Tyralife",
+    siteName: "Levalife",
   },
   icons: {
     icon: "/favicon.svg",
