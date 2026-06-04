@@ -40,7 +40,7 @@ export default async function SignInPage({
               <Sparkles className="size-8 text-accent-fg" strokeWidth={2.4} />
             </div>
             <div className="text-5xl tracking-tight select-none leading-none font-bold">
-              <span className="text-fg">Tyra</span>
+              <span className="text-fg">Leva</span>
               <span className="text-accent">life</span>
             </div>
             <p
