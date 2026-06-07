@@ -35,6 +35,7 @@ import { BoardActionsMenu } from "./board-actions-menu";
 import { ViewToggle, type ViewMode } from "./view-toggle";
 import { LifeCurveView } from "./life-curve-view";
 import { EmojiPicker } from "./emoji-picker";
+import { SignOutModal } from "../sign-out-modal";
 import { APP_VERSION } from "@/lib/version";
 
 export function BoardView({ initialBoard }: { initialBoard: Board }) {
@@ -48,6 +49,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   const [addingSection, setAddingSection] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [pickingEmoji, setPickingEmoji] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   // ViewMode synkad mot URL ?view=plan|curve så reload behåller flik.
   // Använder window.location direkt + history.replaceState för att undvika
@@ -372,15 +374,18 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             >
               v{APP_VERSION}
             </span>
-            <a
-              href="/api/auth/signout"
+            <button
+              type="button"
+              onClick={() => setSigningOut(true)}
               className="text-xs text-fg-muted/60 hover:text-danger font-medium transition-colors select-none"
             >
               Logga ut
-            </a>
+            </button>
           </div>
         </div>
       </header>
+
+      <SignOutModal open={signingOut} onClose={() => setSigningOut(false)} />
 
       {/* Preview banner */}
       <AnimatePresence>

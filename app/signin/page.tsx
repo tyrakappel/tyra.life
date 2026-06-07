@@ -149,9 +149,6 @@ export default async function SignInPage({
                   </div>
                 )}
 
-                <p className="text-center text-xs text-fg-muted/70 mt-8">
-                  Personligt utrymme
-                </p>
               </>
             )}
           </div>
