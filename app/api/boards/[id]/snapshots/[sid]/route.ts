@@ -27,11 +27,23 @@ export const GET = handler(async (_req: NextRequest, ctx: Ctx) => {
   });
 });
 
-/** Ta bort en snapshot. */
+/** Ta bort en snapshot. Auto-snapshots är skyddade och kan inte tas bort. */
 export const DELETE = handler(async (_req: NextRequest, ctx: Ctx) => {
   const user = await requireUserApi();
   const { id, sid } = await ctx.params;
   await assertBoardOwner(id, user.id);
+
+  const snapshot = await prisma.boardSnapshot.findFirst({
+    where: { id: sid, boardId: id },
+    select: { reason: true },
+  });
+  if (!snapshot) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (snapshot.reason === "auto") {
+    return NextResponse.json(
+      { error: "Auto-versioner kan inte tas bort." },
+      { status: 403 }
+    );
+  }
 
   await prisma.boardSnapshot.deleteMany({ where: { id: sid, boardId: id } });
   return NextResponse.json({ ok: true });

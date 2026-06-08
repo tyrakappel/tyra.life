@@ -183,14 +183,16 @@ export function VersionMenu({ boardId, previewSnapshotId, onPreview }: Props) {
                         >
                           <Eye className="size-3.5" />
                         </button>
-                        <button
-                          onClick={() => deleteSnapshot(s.id)}
-                          className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center size-7 rounded-md text-fg-muted hover:text-danger hover:bg-bg transition-all"
-                          aria-label="Ta bort version"
-                          title="Ta bort version"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
+                        {s.reason !== "auto" && (
+                          <button
+                            onClick={() => deleteSnapshot(s.id)}
+                            className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center size-7 rounded-md text-fg-muted hover:text-danger hover:bg-bg transition-all"
+                            aria-label="Ta bort version"
+                            title="Ta bort version"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
                       </div>
                     );
                   })}
