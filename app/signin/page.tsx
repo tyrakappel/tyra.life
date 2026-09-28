@@ -26,6 +26,11 @@ export default async function SignInPage({
   const params = await searchParams;
   const hasResend = !!process.env.AUTH_RESEND_KEY;
   const hasGoogle = !!process.env.AUTH_GOOGLE_ID;
+  // Samma spärrar som /api/dev-login, så knappen bara syns när routen svarar.
+  const devLoginEmail =
+    process.env.NODE_ENV === "development" && !process.env.VERCEL
+      ? process.env.DEV_LOGIN_EMAIL
+      : undefined;
   const errorMsg = params.error
     ? ERROR_MESSAGES[params.error] ?? ERROR_MESSAGES.Default
     : null;
@@ -133,6 +138,17 @@ export default async function SignInPage({
                       </button>
                     </form>
                   </>
+                )}
+
+                {devLoginEmail && (
+                  <a
+                    href={`/api/dev-login?callbackUrl=${encodeURIComponent(
+                      params.callbackUrl || "/"
+                    )}`}
+                    className="mt-4 flex items-center justify-center w-full border border-dashed border-border hover:border-fg-muted/40 text-fg-muted hover:text-fg py-3 px-5 rounded-full text-sm font-medium transition-colors duration-150"
+                  >
+                    Dev: logga in som {devLoginEmail}
+                  </a>
                 )}
 
                 {!hasGoogle && !hasResend && (
