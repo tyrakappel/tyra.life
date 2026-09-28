@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
+  CollisionDetection,
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
@@ -13,9 +14,13 @@ import {
   useSensors,
   closestCenter,
 } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
+import { MoodBoardSwitcher } from "./mood-board-switcher";
 
 import type { Board } from "@/lib/types";
 import { createBoardStore } from "@/lib/board-store";
@@ -32,7 +37,8 @@ import { ReadOnlyBoard } from "./read-only-board";
 import { ColorThemeMenu } from "../color-theme-menu";
 import { BoardSwitcher } from "./board-switcher";
 import { BoardActionsMenu } from "./board-actions-menu";
-import { ViewToggle, type ViewMode } from "./view-toggle";
+import { ViewToggle, VIEW_MODES, type ViewMode } from "./view-toggle";
+import { MoodBoardView } from "./mood-board-view";
 import { LifeCurveView } from "./life-curve-view";
 import { EmojiPicker } from "./emoji-picker";
 import { SignOutModal } from "../sign-out-modal";
@@ -40,7 +46,10 @@ import { APP_VERSION } from "@/lib/version";
 
 export function BoardView({ initialBoard }: { initialBoard: Board }) {
   // Skapa store en gång per initialBoard.id
-  const useStore = useMemo(() => createBoardStore(initialBoard), [initialBoard.id]);
+  const useStore = useMemo(
+    () => createBoardStore(initialBoard),
+    [initialBoard.id],
+  );
   const board = useStore((s) => s.board);
   const store = useStore();
 
@@ -56,14 +65,14 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   // SSR-pre-render-mismatches med useSearchParams.
   const [viewMode, setViewModeInternal] = useState<ViewMode>("plan");
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("view") === "curve") setViewModeInternal("curve");
+    const readView = (): ViewMode => {
+      const v = new URLSearchParams(window.location.search).get("view");
+      return VIEW_MODES.includes(v as ViewMode) ? (v as ViewMode) : "plan";
+    };
+    setViewModeInternal(readView());
 
     // Lyssna på back/forward navigation
-    const onPop = () => {
-      const p = new URLSearchParams(window.location.search);
-      setViewModeInternal(p.get("view") === "curve" ? "curve" : "plan");
-    };
+    const onPop = () => setViewModeInternal(readView());
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -79,6 +88,19 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
       : window.location.pathname;
     window.history.replaceState({}, "", url);
   };
+
+  // Aktivt mood board, synkat mot ?mood=<id>. Väljaren fyller i första
+  // boarden om URL:en saknar en.
+  const [moodBoardId, setMoodBoardIdInternal] = useState<string | null>(null);
+  useEffect(() => {
+    setMoodBoardIdInternal(new URLSearchParams(window.location.search).get("mood"));
+  }, []);
+  const setMoodBoardId = useCallback((id: string) => {
+    setMoodBoardIdInternal(id);
+    const params = new URLSearchParams(window.location.search);
+    params.set("mood", id);
+    window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
+  }, []);
 
   const newSectionRef = useRef<HTMLInputElement>(null);
 
@@ -96,8 +118,10 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(KeyboardSensor)
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 6 },
+    }),
+    useSensor(KeyboardSensor),
   );
 
   const sectionKey = (s: { id: string; _clientKey?: string }) =>
@@ -120,6 +144,42 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
     ? board.sections.find((s) => sectionKey(s) === activeId)
     : null;
   const activeTask = activeTaskKey ? findTaskByKey(activeTaskKey)?.task : null;
+
+  // ============ Kollisionsdetektering ============
+  // Vi kör EN DndContext för sections, subkategorier och tasks, så alla
+  // droppables tävlar mot varandra. Utan filtrering vinner en subkategori
+  // eller task inne i en kolumn ofta över själva kolumnen när man drar en
+  // kolumn, eftersom deras center ligger nästan lika nära. Då blir over.id
+  // ett task-/subkat-id, handleDragEnd hittar det inte bland sektionerna
+  // och droppet tappas tyst. Effekten: kolumner går att flytta så länge de
+  // är tomma, men slutar gå att flytta så fort de fått innehåll.
+  //
+  // Lösningen är att bara låta droppables av rätt typ delta i tävlingen.
+  const collisionDetection: CollisionDetection = (args) => {
+    const activeType = (
+      args.active.data.current as { type?: string } | undefined
+    )?.type;
+
+    const only = (types: string[]) =>
+      args.droppableContainers.filter((c) =>
+        types.includes(
+          (c.data.current as { type?: string } | undefined)?.type ?? "",
+        ),
+      );
+
+    if (activeType === "section") {
+      return closestCenter({ ...args, droppableContainers: only(["section"]) });
+    }
+
+    if (activeType === "task") {
+      return closestCenter({
+        ...args,
+        droppableContainers: only(["task", "subcategory-drop", "subcategory"]),
+      });
+    }
+
+    return closestCenter(args);
+  };
 
   // ============ Unified DnD-handler ============
   // En enda DndContext för sections, subkategorier OCH tasks.
@@ -250,10 +310,13 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
       )
         return;
       const step = 340;
-      if (e.key === "ArrowRight") el.scrollBy({ left: step, behavior: "smooth" });
-      else if (e.key === "ArrowLeft") el.scrollBy({ left: -step, behavior: "smooth" });
+      if (e.key === "ArrowRight")
+        el.scrollBy({ left: step, behavior: "smooth" });
+      else if (e.key === "ArrowLeft")
+        el.scrollBy({ left: -step, behavior: "smooth" });
       else if (e.key === "Home") el.scrollTo({ left: 0, behavior: "smooth" });
-      else if (e.key === "End") el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+      else if (e.key === "End")
+        el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -282,7 +345,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
     if (!previewSnapshot) return;
     if (
       !confirm(
-        "Ersätt liveversion med denna?\n\nEn säkerhetskopia av ditt nuvarande arbete sparas automatiskt under 'Före rollback' i versionshistoriken — du kan alltid återgå till det."
+        "Ersätt liveversion med denna?\n\nEn säkerhetskopia av ditt nuvarande arbete sparas automatiskt under 'Före rollback' i versionshistoriken — du kan alltid återgå till det.",
       )
     )
       return;
@@ -308,65 +371,85 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="h-screen flex flex-col bg-bg"
+      // Mood Board är alltid mörkt: temat sätts på skalet så header och
+      // canvas byter tokens, utan att röra användarens valda Färgtema.
+      data-color-theme={viewMode === "mood" ? "mood" : undefined}
+      className="h-screen flex flex-col bg-bg text-fg"
     >
       {/* Header */}
       <header className="flex-shrink-0 px-5 py-3 flex items-center gap-3 border-b border-border/60">
+        <div
+          aria-label="Levalife"
+          className="flex-shrink-0 inline-flex items-center justify-center size-8 rounded-lg bg-accent shadow-sm shadow-accent/40 ring-1 ring-accent/30"
+        >
+          <Sparkles className="size-4 text-accent-fg" strokeWidth={2.4} />
+        </div>
         {previewSnapshot ? (
           <div className="flex items-center gap-2 -ml-2 px-2 py-1.5">
-            {board.emoji && <span className="text-xl leading-none">{board.emoji}</span>}
+            {board.emoji && (
+              <span className="text-xl leading-none">{board.emoji}</span>
+            )}
             <span className="text-lg font-semibold">
               {previewBoard?.name ?? board.name}
             </span>
           </div>
         ) : (
           <div className="flex items-center gap-0.5">
-            <div className="relative">
-              <BoardSwitcher
-                boardId={board.id}
-                boardName={board.name}
-                boardEmoji={board.emoji}
-                editing={editingName}
-                onEditCancel={() => setEditingName(false)}
-                onEditSubmit={(name) => {
-                  store.renameBoard(name);
-                  setEditingName(false);
-                }}
-              />
-              <EmojiPicker
-                open={pickingEmoji}
-                currentEmoji={board.emoji}
-                onSelect={(emoji) => {
-                  api
-                    .updateBoard(board.id, { emoji })
-                    .then(() => window.location.reload())
-                    .catch(console.error);
-                  setPickingEmoji(false);
-                }}
-                onClose={() => setPickingEmoji(false)}
-              />
-            </div>
-            <BoardActionsMenu
-              boardId={board.id}
-              boardName={board.name}
-              boardEmoji={board.emoji}
-              onRequestRename={() => setEditingName(true)}
-              onRequestEmoji={() => setPickingEmoji(true)}
-            />
-            <div className="ml-3">
+            <div className="ml-1 mr-3">
               <ViewToggle view={viewMode} onChange={setViewMode} />
             </div>
+            {viewMode === "mood" && (
+              <MoodBoardSwitcher activeId={moodBoardId} onChange={setMoodBoardId} />
+            )}
+            {viewMode === "plan" && (
+              <>
+                <div className="relative">
+                  <BoardSwitcher
+                    boardId={board.id}
+                    boardName={board.name}
+                    boardEmoji={board.emoji}
+                    editing={editingName}
+                    onEditCancel={() => setEditingName(false)}
+                    onEditSubmit={(name) => {
+                      store.renameBoard(name);
+                      setEditingName(false);
+                    }}
+                  />
+                  <EmojiPicker
+                    open={pickingEmoji}
+                    currentEmoji={board.emoji}
+                    onSelect={(emoji) => {
+                      api
+                        .updateBoard(board.id, { emoji })
+                        .then(() => window.location.reload())
+                        .catch(console.error);
+                      setPickingEmoji(false);
+                    }}
+                    onClose={() => setPickingEmoji(false)}
+                  />
+                </div>
+                <BoardActionsMenu
+                  boardId={board.id}
+                  boardName={board.name}
+                  boardEmoji={board.emoji}
+                  onRequestRename={() => setEditingName(true)}
+                  onRequestEmoji={() => setPickingEmoji(true)}
+                />
+              </>
+            )}
           </div>
         )}
         <div className="ml-auto flex items-center gap-8">
-          <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/60">
-            <VersionMenu
-              boardId={board.id}
-              previewSnapshotId={previewSnapshot?.id ?? null}
-              onPreview={handlePreview}
-            />
-            <ColorThemeMenu />
-          </div>
+          {viewMode !== "mood" && (
+            <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/60">
+              <VersionMenu
+                boardId={board.id}
+                previewSnapshotId={previewSnapshot?.id ?? null}
+                onPreview={handlePreview}
+              />
+              <ColorThemeMenu />
+            </div>
+          )}
           <div className="flex items-center gap-4">
             <span
               className="text-xs text-fg-muted/60 font-medium tabular-nums select-none"
@@ -405,6 +488,15 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
         <ReadOnlyBoard board={previewBoard} />
       ) : viewMode === "curve" ? (
         <LifeCurveView boardId={board.id} />
+      ) : viewMode === "mood" ? (
+        moodBoardId ? (
+          <MoodBoardView
+            key={moodBoardId}
+            moodBoardId={moodBoardId}
+          />
+        ) : (
+          <div className="flex-1" />
+        )
       ) : (
         <div
           ref={scrollRef}
@@ -412,7 +504,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
         >
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={collisionDetection}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}

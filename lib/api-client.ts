@@ -154,4 +154,59 @@ export const api = {
       `/api/boards/${boardId}/life-curve`,
       { method: "PUT", body: JSON.stringify(data) }
     ),
+
+  // Mood Board
+  listMoodBoards: () => req<{ boards: MoodBoardSummary[] }>("/api/mood-boards"),
+  createMoodBoard: (name: string, emoji: string | null) =>
+    req<{ board: MoodBoardSummary }>("/api/mood-boards", {
+      method: "POST",
+      body: JSON.stringify({ name, emoji }),
+    }),
+  listMoodItems: (moodBoardId: string) =>
+    req<{ items: MoodItem[] }>(`/api/mood-boards/${moodBoardId}/items`),
+  createMoodUpload: (contentType: string, bytes: number, posterBytes?: number) =>
+    req<{
+      uploadUrl: string;
+      key: string;
+      posterUploadUrl?: string;
+      posterKey?: string;
+    }>("/api/mood-items/upload-url", {
+      method: "POST",
+      body: JSON.stringify({ contentType, bytes, posterBytes }),
+    }),
+  deleteMoodItem: (id: string) =>
+    req(`/api/mood-items/${id}`, { method: "DELETE" }),
+  findMoodDuplicates: (moodBoardId: string, hashes: string[]) =>
+    req<{ existing: string[] }>(`/api/mood-boards/${moodBoardId}/duplicates`, {
+      method: "POST",
+      body: JSON.stringify({ hashes }),
+    }),
+  saveMoodItem: (moodBoardId: string, data: {
+    key: string;
+    width: number;
+    height: number;
+    bytes: number;
+    contentHash: string;
+  }) =>
+    req<{ item: MoodItem }>(`/api/mood-boards/${moodBoardId}/items`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
+
+export type MoodBoardSummary = {
+  id: string;
+  name: string;
+  emoji: string | null;
+  order: number;
+};
+
+export type MoodItem = {
+  id: string;
+  kind: "image" | "video";
+  url: string;
+  posterUrl: string | null;
+  width: number;
+  height: number;
+  depth: number;
 };

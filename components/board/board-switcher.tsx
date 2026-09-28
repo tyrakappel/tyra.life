@@ -153,11 +153,11 @@ export function BoardSwitcher({
   // Inline edit-läge
   if (editing) {
     return (
-      <div className="inline-flex items-center gap-2 -ml-2 px-2 py-1.5">
+      <div className="inline-flex items-center gap-1.5 h-9 px-2.5">
         {boardEmoji ? (
-          <span className="text-xl leading-none">{boardEmoji}</span>
+          <span className="text-base leading-none">{boardEmoji}</span>
         ) : (
-          <span className="inline-flex items-center justify-center size-6 rounded-md bg-accent/15 text-accent">
+          <span className="inline-flex items-center justify-center size-5 rounded-md bg-accent/15 text-accent">
             <LayoutGrid className="size-3.5" />
           </span>
         )}
@@ -180,7 +180,7 @@ export function BoardSwitcher({
               onEditCancel?.();
             }
           }}
-          className="text-lg font-semibold bg-muted/40 rounded-md px-2 py-0.5 outline-none ring-2 ring-accent/40 min-w-[14rem]"
+          className="text-sm font-semibold bg-muted/40 rounded-md px-2 py-1 outline-none ring-2 ring-accent/40 min-w-[14rem]"
         />
       </div>
     );
@@ -191,24 +191,24 @@ export function BoardSwitcher({
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "inline-flex items-center gap-2 -ml-2 px-2 py-1.5 rounded-lg transition-colors",
+          "inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg transition-colors",
           "hover:bg-surface-hover",
           open && "bg-surface-hover"
         )}
       >
         {boardEmoji ? (
-          <span className="text-xl leading-none">{boardEmoji}</span>
+          <span className="text-base leading-none">{boardEmoji}</span>
         ) : (
-          <span className="inline-flex items-center justify-center size-6 rounded-md bg-accent/15 text-accent">
+          <span className="inline-flex items-center justify-center size-5 rounded-md bg-accent/15 text-accent">
             <LayoutGrid className="size-3.5" />
           </span>
         )}
-        <span className="text-lg font-semibold truncate max-w-[16rem]">
+        <span className="text-sm font-semibold truncate max-w-[16rem]">
           {boardName}
         </span>
         <ChevronDown
           className={cn(
-            "size-4 text-fg-muted transition-transform duration-150",
+            "size-3.5 text-fg-muted transition-transform duration-150",
             open && "rotate-180"
           )}
         />

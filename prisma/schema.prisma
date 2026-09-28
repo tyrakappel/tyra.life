@@ -27,9 +27,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  boards   Board[]
+  accounts   Account[]
+  sessions   Session[]
+  boards     Board[]
+  moodBoards MoodBoard[]
+  moodItems  MoodItem[]
 }
 
 model Account {
@@ -102,7 +104,7 @@ model LifeCurve {
   id        String   @id @default(cuid())
   boardId   String   @unique
   birthYear Int?
-  values    Json     // number[] — index*0.5 = ålder i år, value -1..1
+  values    Json // number[] — index*0.5 = ålder i år, value -1..1
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -117,9 +119,9 @@ model LifeCurve {
 model BoardSnapshot {
   id        String   @id @default(cuid())
   boardId   String
-  label     String?  // valfri etikett, t.ex. "innan stora rensningen"
-  reason    String?  // auto-anledning: "manuell", "pre-restore", "auto"
-  data      Json     // sections + subcategories + tasks som JSON
+  label     String? // valfri etikett, t.ex. "innan stora rensningen"
+  reason    String? // auto-anledning: "manuell", "pre-restore", "auto"
+  data      Json // sections + subcategories + tasks som JSON
   createdAt DateTime @default(now())
 
   board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
@@ -132,7 +134,7 @@ model Section {
   boardId     String
   title       String
   description String?
-  color       String?  // hex eller tailwind-key, frivilligt
+  color       String? // hex eller tailwind-key, frivilligt
   order       Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -172,4 +174,51 @@ model Task {
   subcategory Subcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
 
   @@index([subcategoryId, completed, order])
+}
+
+// ============================================================
+// Mood Board — flera boards per användare, bilder och videor, lagrade i Cloudflare R2.
+// Placeringen sparas inte, den räknas fram ur ordningen i lib/mood-layout.ts
+// så rymden alltid är tätt packad från mitten.
+// ============================================================
+model MoodBoard {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  emoji     String?
+  order     Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items MoodItem[]
+
+  @@index([userId, order])
+}
+
+model MoodItem {
+  id          String   @id @default(cuid())
+  userId      String
+  moodBoardId String
+  /// "image" eller "video"
+  kind        String   @default("image")
+  key         String   @unique
+  url         String
+  /// stillbild för video, visas tills man hovrar
+  posterKey   String?
+  posterUrl   String?
+  width       Int
+  height      Int
+  bytes       Int?
+  /// SHA-256 av originalfilen, för att känna igen dubbletter per board
+  contentHash String?
+  /// 0 = långt bort, 1 = nära
+  depth       Float
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moodBoard MoodBoard @relation(fields: [moodBoardId], references: [id], onDelete: Cascade)
+
+  @@unique([moodBoardId, contentHash])
+  @@index([moodBoardId])
 }

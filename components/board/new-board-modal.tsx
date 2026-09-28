@@ -15,9 +15,18 @@ type Props = {
     emoji: string | null;
     template: BoardTemplateId;
   }) => Promise<void>;
+  /** Mood boards har inga mallar, bara namn och emoji. */
+  withTemplates?: boolean;
+  title?: string;
 };
 
-export function NewBoardModal({ open, onClose, onCreate }: Props) {
+export function NewBoardModal({
+  open,
+  onClose,
+  onCreate,
+  withTemplates = true,
+  title = "Skapa ny board",
+}: Props) {
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState<string | null>(null);
   const [busy, setBusy] = useState<BoardTemplateId | null>(null);
@@ -83,9 +92,11 @@ export function NewBoardModal({ open, onClose, onCreate }: Props) {
               <X className="size-4" />
             </button>
 
-            <h2 className="text-xl font-bold mb-1">Skapa ny board</h2>
+            <h2 className="text-xl font-bold mb-1">{title}</h2>
             <p className="text-sm text-fg-muted mb-6">
-              Välj namn, emoji och hur du vill börja.
+              {withTemplates
+                ? "Välj namn, emoji och hur du vill börja."
+                : "Välj namn och emoji."}
             </p>
 
             {/* Namn */}
@@ -103,7 +114,7 @@ export function NewBoardModal({ open, onClose, onCreate }: Props) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && name.trim()) {
                     e.preventDefault();
-                    submit("livshjul");
+                    submit(withTemplates ? "livshjul" : "empty");
                   }
                 }}
               />
@@ -147,7 +158,19 @@ export function NewBoardModal({ open, onClose, onCreate }: Props) {
               </div>
             </div>
 
+            {!withTemplates && (
+              <button
+                onClick={() => submit("empty")}
+                disabled={!!busy || !name.trim()}
+                className="flex items-center justify-center gap-2 w-full bg-accent hover:bg-accent/90 text-accent-fg font-semibold text-sm py-3 rounded-lg transition-colors disabled:opacity-40"
+              >
+                {busy && <Loader2 className="size-4 animate-spin" />}
+                Skapa
+              </button>
+            )}
+
             {/* Template-val */}
+            {withTemplates && (
             <div>
               <label className="block text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2">
                 Hur vill du börja?
@@ -172,6 +195,7 @@ export function NewBoardModal({ open, onClose, onCreate }: Props) {
                 </p>
               )}
             </div>
+            )}
           </motion.div>
         </motion.div>
       )}

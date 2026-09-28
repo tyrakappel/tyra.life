@@ -1,9 +1,11 @@
 "use client";
 
-import { LayoutGrid, LineChart } from "lucide-react";
+import { Images, LayoutGrid, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ViewMode = "plan" | "curve";
+export type ViewMode = "plan" | "curve" | "mood";
+
+export const VIEW_MODES: ViewMode[] = ["plan", "curve", "mood"];
 
 type Props = {
   view: ViewMode;
@@ -27,6 +29,12 @@ export function ViewToggle({ view, onChange }: Props) {
         onClick={() => onChange("curve")}
         icon={<LineChart className="size-[18px]" />}
         label="Livskurva"
+      />
+      <ViewTab
+        active={view === "mood"}
+        onClick={() => onChange("mood")}
+        icon={<Images className="size-[18px]" />}
+        label="Mood Board"
       />
     </div>
   );

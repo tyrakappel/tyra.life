@@ -64,6 +64,30 @@
 }
 
 /* =============================================
+   MOOD BOARD — alltid mörkt
+   Inte valbart i Färgtema. Sätts på skalet när Mood Board är aktiv,
+   oavsett användarens tema. Neutral nästan-svart så bilderna bär färgen.
+   ============================================= */
+[data-color-theme="mood"] {
+  --color-bg: rgb(10 10 12);
+  --color-surface: rgb(20 20 23);
+  --color-surface-hover: rgb(30 30 34);
+  --color-border: rgb(44 44 50);
+  --color-muted: rgb(32 32 37);
+  --color-fg: rgb(244 244 246);
+  --color-fg-muted: rgb(160 160 170);
+  --color-accent: rgb(168 145 255);
+  --color-accent-fg: rgb(17 13 30);
+  --color-success: rgb(74 222 128);
+  --color-danger: rgb(248 113 113);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+  --shadow-card-hover: 0 6px 18px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.5);
+
+  color-scheme: dark;
+}
+
+/* =============================================
    TEMA 2: EMERALD — Ljus daggryning
    Ren off-white bakgrund, djup emerald accent.
    Mood: fräsch, luftig, produktivt arbetsläge.
@@ -252,5 +276,23 @@
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Mood Board: långsam svävning per bild, varaktighet och fördröjning sätts inline */
+@keyframes mood-float {
+  0% { transform: translate3d(0, 0, 0); }
+  33% { transform: translate3d(6px, -10px, 0); }
+  66% { transform: translate3d(-8px, 4px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+.mood-float {
+  animation: mood-float 20s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mood-float {
+    animation: none;
   }
 }
