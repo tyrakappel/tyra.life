@@ -22,12 +22,21 @@ const nextConfig = {
           { key: "Cache-Control", value: "no-store, max-age=0, must-revalidate" },
         ],
       },
-      {
-        source: "/_next/static/:path*",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-        ],
-      },
+      // Bara i prod: i dev byts chunkinnehållet under samma URL, och
+      // immutable gör att browsern fortsätter köra gammal JS/CSS.
+      ...(process.env.NODE_ENV === "production"
+        ? [
+            {
+              source: "/_next/static/:path*",
+              headers: [
+                {
+                  key: "Cache-Control",
+                  value: "public, max-age=31536000, immutable",
+                },
+              ],
+            },
+          ]
+        : []),
     ];
   },
 };
