@@ -11,7 +11,8 @@ import type { NextRequest } from "next/server";
  * magic links + Prisma adapter), så cookien är ett session-ID, inte en JWT.
  */
 
-const PUBLIC_PATHS = ["/signin", "/api/auth"];
+// /share är publika läslänkar till mood boards, se app/share/[token].
+const PUBLIC_PATHS = ["/signin", "/api/auth", "/share/"];
 
 // Auth.js v5 cookie-namn (prod använder __Secure-prefix när AUTH_URL är https://)
 const SESSION_COOKIES = [

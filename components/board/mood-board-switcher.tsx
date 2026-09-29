@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
+  Globe,
   Images,
   MoreHorizontal,
   Pencil,
   Plus,
+  Share2,
   Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { isModOnly, MOD_KEY_LABEL } from "@/lib/shortcuts";
 import { NewBoardModal } from "./new-board-modal";
 import { Action } from "./board-actions-menu";
+import { MoodSharePanel } from "./mood-share-menu";
 
 /**
  * Väljare för mood boards, samma form som BoardSwitcher för livsplanen.
@@ -251,8 +254,14 @@ export function MoodBoardSwitcher({
 
       {active && (
         <MoodBoardActions
+          board={active}
           onEdit={() => setEditOpen(true)}
           onDelete={handleDelete}
+          onShareChange={(shareToken) =>
+            setBoards((bs) =>
+              bs.map((b) => (b.id === active.id ? { ...b, shareToken } : b)),
+            )
+          }
         />
       )}
 
@@ -272,13 +281,18 @@ export function MoodBoardSwitcher({
 }
 
 function MoodBoardActions({
+  board,
   onEdit,
   onDelete,
+  onShareChange,
 }: {
+  board: MoodBoardSummary;
   onEdit: () => void;
   onDelete: () => void;
+  onShareChange: (shareToken: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -315,6 +329,20 @@ function MoodBoardActions({
             className="absolute right-0 sm:right-auto sm:left-0 top-full mt-2 w-[13rem] card p-1.5 z-[300] shadow-card-hover space-y-0.5"
           >
             <Action
+              icon={
+                board.shareToken ? (
+                  <Globe className="size-4 text-accent" />
+                ) : (
+                  <Share2 className="size-4" />
+                )
+              }
+              label={board.shareToken ? "Delas publikt" : "Dela"}
+              onClick={() => {
+                setOpen(false);
+                setShareOpen(true);
+              }}
+            />
+            <Action
               icon={<Pencil className="size-4" />}
               label="Byt namn och emoji"
               onClick={() => {
@@ -335,6 +363,12 @@ function MoodBoardActions({
           </motion.div>
         )}
       </AnimatePresence>
+      <MoodSharePanel
+        board={board}
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        onChange={onShareChange}
+      />
     </div>
   );
 }

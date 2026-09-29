@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { handler, jsonError, requireUserApi } from "@/lib/api";
 import { ORDER_STEP } from "@/lib/ordering";
 
-const SELECT = { id: true, name: true, emoji: true, order: true } as const;
+const SELECT = { id: true, name: true, emoji: true, order: true, shareToken: true } as const;
 
 /** Listar användarens mood boards. Har man ingen skapas en första. */
 export const GET = handler(async () => {

@@ -102,9 +102,23 @@ function tileWidth(t: MoodItem) {
   return tileSize(t).w;
 }
 
-export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
+/**
+ * `readOnly` med `initialItems` används av den publika delningssidan: ingen
+ * hämtning, ingen uppladdning, ingen radering eller flytt, inga exempelbilder.
+ */
+export function MoodBoardView({
+  moodBoardId,
+  readOnly = false,
+  initialItems,
+}: {
+  moodBoardId: string;
+  readOnly?: boolean;
+  initialItems?: MoodItem[];
+}) {
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [tiles, setTiles] = useState<Tile[] | null>(null);
+  const [tiles, setTiles] = useState<Tile[] | null>(
+    initialItems ? initialItems.map(toTile) : null
+  );
   const [isPlaceholder, setIsPlaceholder] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -116,6 +130,7 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
   const cameraReady = useRef(false);
 
   useEffect(() => {
+    if (initialItems) return;
     const showPlaceholders = () => {
       setTiles(placeholderTiles());
       setIsPlaceholder(true);
@@ -126,7 +141,7 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
         items.length ? setTiles(items.map(toTile)) : showPlaceholders()
       )
       .catch(showPlaceholders);
-  }, [moodBoardId]);
+  }, [moodBoardId, initialItems]);
 
   // ============ Kamera ============
   const apply = useCallback(() => {
@@ -341,12 +356,12 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
   // också finns med.
   const [moveTargets, setMoveTargets] = useState<MoodBoardSummary[]>([]);
   useEffect(() => {
-    if (!openId || isPlaceholder) return;
+    if (!openId || isPlaceholder || readOnly) return;
     api
       .listMoodBoards()
       .then(({ boards }) => setMoveTargets(boards.filter((b) => b.id !== moodBoardId)))
       .catch(console.error);
-  }, [openId, isPlaceholder, moodBoardId]);
+  }, [openId, isPlaceholder, readOnly, moodBoardId]);
 
   return (
     <div
@@ -399,16 +414,24 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
             Aktivera rörelse
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setUploadOpen(true)}
-          onPointerDown={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-2 h-11 pl-5 pr-4 rounded-full bg-surface/85 border border-border text-sm font-semibold text-fg shadow-2xl shadow-black/60 backdrop-blur-md hover:bg-surface-hover hover:border-fg-muted/40 active:scale-[0.97] transition-all duration-150 ease-snap"
-        >
-          Lägg till media
-          <Plus className="size-4" strokeWidth={2.4} />
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-2 h-11 pl-5 pr-4 rounded-full bg-surface/85 border border-border text-sm font-semibold text-fg shadow-2xl shadow-black/60 backdrop-blur-md hover:bg-surface-hover hover:border-fg-muted/40 active:scale-[0.97] transition-all duration-150 ease-snap"
+          >
+            Lägg till media
+            <Plus className="size-4" strokeWidth={2.4} />
+          </button>
+        )}
       </div>
+
+      {readOnly && tiles?.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <p className="text-sm text-fg-muted">Det här mood boardet är tomt än så länge.</p>
+        </div>
+      )}
 
       <MediaLightbox
         tile={openTile}
@@ -416,7 +439,7 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
         onClose={() => setOpenId(null)}
         // Exempelbilderna finns inte i databasen och går inte att radera.
         onDelete={
-          isPlaceholder
+          isPlaceholder || readOnly
             ? undefined
             : async (id) => {
                 await api.deleteMoodItem(id);
@@ -426,7 +449,7 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
         }
         moveTargets={moveTargets}
         onMove={
-          isPlaceholder
+          isPlaceholder || readOnly
             ? undefined
             : async (id, targetId) => {
                 await api.moveMoodItem(id, targetId);
@@ -435,6 +458,7 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
               }
         }
       />
+      {!readOnly && (
       <MoodUploadModal
         moodBoardId={moodBoardId}
         open={uploadOpen}
@@ -444,6 +468,7 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
           setIsPlaceholder(false);
         }}
       />
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { deleteObject } from "@/lib/r2";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-const SELECT = { id: true, name: true, emoji: true, order: true } as const;
+const SELECT = { id: true, name: true, emoji: true, order: true, shareToken: true } as const;
 
 async function findOwned(id: string, userId: string) {
   const board = await prisma.moodBoard.findFirst({

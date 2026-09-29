@@ -167,6 +167,10 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  shareMoodBoard: (id: string) =>
+    req<{ shareToken: string }>(`/api/mood-boards/${id}/share`, { method: "POST" }),
+  unshareMoodBoard: (id: string) =>
+    req<{ shareToken: null }>(`/api/mood-boards/${id}/share`, { method: "DELETE" }),
   deleteMoodBoard: (id: string) =>
     req(`/api/mood-boards/${id}`, { method: "DELETE" }),
   listMoodItems: (moodBoardId: string) =>
@@ -211,6 +215,7 @@ export type MoodBoardSummary = {
   name: string;
   emoji: string | null;
   order: number;
+  shareToken: string | null;
 };
 
 export type MoodItem = {
