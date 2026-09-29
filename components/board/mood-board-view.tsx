@@ -199,19 +199,21 @@ export function MoodBoardView({
     [apply, clampPan]
   );
 
-  // Startzoom: rymdens höjd ryms i viewporten. Bara första gången, så
-  // kameran inte hoppar när nya objekt laddas upp.
+  // Startzoom: höjden passas in, sidorna får gå utanför skärmen när rymden
+  // växer. Bilderna blir aldrig mindre än att man kan läsa dem, och med få
+  // bilder syns allt ändå. Bara första gången, så kameran inte hoppar när
+  // nya objekt laddas upp.
   useEffect(() => {
     const vp = viewportRef.current;
     if (!vp || !tiles || cameraReady.current) return;
     cameraReady.current = true;
-    // Passa in det som faktiskt finns, med luft runt. Få objekt ska inte
-    // se ut som prickar i en tom rymd.
     let minX = -200, maxX = 200, minY = -150, maxY = 150;
+    const widths: number[] = [];
     for (const t of tiles) {
       const p = layoutRef.current.get(t.id);
       if (!p) continue;
       const { w, h } = tileSize(t);
+      widths.push(w);
       minX = Math.min(minX, p.x - w / 2);
       maxX = Math.max(maxX, p.x + w / 2);
       minY = Math.min(minY, p.y - h / 2);
@@ -222,19 +224,32 @@ export function MoodBoardView({
     const PAD_BOTTOM = 110;
     const fitW = (vp.clientWidth - 120) / (maxX - minX);
     const fitH = (vp.clientHeight - PAD_TOP - PAD_BOTTOM) / (maxY - minY);
-    // Stående skärm (mobil): passa in höjden och låt rymden gå utanför i
-    // sidled, annars blir allt pyttesmått. Man sveper för att se resten.
+
+    // En mellanstor bild ska vara minst så här bred på skärmen.
     const portrait = vp.clientHeight > vp.clientWidth;
-    const fit = portrait ? Math.min(fitH, fitW * 2.6) : Math.min(fitW, fitH);
-    const z = Math.min(1.1, Math.max(MIN_ZOOM, fit));
+    const readable = portrait ? 120 : 150;
+    widths.sort((a, b) => a - b);
+    const median = widths[Math.floor(widths.length / 2)] ?? 250;
+    const zReadable = readable / median;
+
+    // Allt ryms läsbart: visa allt. Annars passa in höjden, och zooma
+    // bara in förbi den (så topp och botten klipps lite) om bilderna annars
+    // blir för små.
+    const zAll = Math.min(fitW, fitH);
+    const zHeight = Math.max(fitH, Math.min(zReadable, fitH * 1.25));
+    const z = Math.min(1.1, Math.max(MIN_ZOOM, zAll >= zReadable ? zAll : zHeight));
+    const fitsWidth = (maxX - minX) * z <= vp.clientWidth - 120;
     cam.current = {
-      x: -((minX + maxX) / 2) * z,
+      // Ryms bredden centreras helheten, annars startar vi i mitten där de
+      // äldsta bilderna ligger och rymden växer utåt.
+      x: fitsWidth ? -((minX + maxX) / 2) * z : 0,
       // Mitten av ytan mellan paddingarna ligger lite ovanför skärmens mitt.
       y: -((minY + maxY) / 2) * z + (PAD_TOP - PAD_BOTTOM) / 2,
       z,
     };
+    clampPan();
     apply();
-  }, [tiles, apply]);
+  }, [tiles, apply, clampPan]);
 
   useEffect(() => {
     window.addEventListener("resize", apply);
@@ -399,6 +414,16 @@ export function MoodBoardView({
           />
         ))}
       </div>
+
+      {/* Mjuk tonad kant i sidled, antyder att rymden fortsätter utanför. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 w-16 sm:w-28 z-[150] bg-gradient-to-r from-bg to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 w-16 sm:w-28 z-[150] bg-gradient-to-l from-bg to-transparent"
+      />
 
       {/* Medan listan hämtas. Själva bilderna har sedan egna skelett. */}
       {!tiles && (
