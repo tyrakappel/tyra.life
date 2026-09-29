@@ -36,28 +36,30 @@ export type LayoutInput = {
 };
 
 /** Kolumnavstånd i världsenheter (px vid zoom 1) */
-const COL = 340;
+const COL = 320;
 /** Radavstånd */
-const ROW = 255;
-/** Jämna kolumner: sju rader. Udda: sex, förskjutna en halv rad. */
-const EVEN_ROWS = [-3, -2, -1, 0, 1, 2, 3];
-const ODD_ROWS = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5];
+const ROW = 240;
+/** Jämna kolumner: fem rader. Udda: fyra, förskjutna en halv rad. */
+const EVEN_ROWS = [-2, -1, 0, 1, 2];
+const ODD_ROWS = [-1.5, -0.5, 0.5, 1.5];
 /**
  * Höjd straffas lite mer än bredd, så rymden blir en liggande oval ungefär
  * i skärmens proportioner i stället för ett platt band.
  */
-const Y_WEIGHT = 1.3;
+const Y_WEIGHT = 1.45;
 /** Hur långt ut i höjd mittpunkter får hamna */
-const MAX_Y = ROW * 3.1;
+const MAX_Y = ROW * 2.9;
 /** Knuffar går mest i sidled, men höjden får ta en del. */
-const PUSH_Y = 1;
+const PUSH_Y = 0.85;
 const JITTER_X = 85;
 const JITTER_Y = 60;
 /** Så stor del av det minsta objektet får täckas av en granne */
-const MAX_OVERLAP = 0.12;
+const MAX_OVERLAP = 0.1;
 /** Så stor del av ett objekt som får täckas sammanlagt av det framför */
-const MAX_COVER = 0.15;
-const RELAX_ITERATIONS = 160;
+const MAX_COVER = 0.12;
+const RELAX_ITERATIONS = 260;
+/** Marginal runt varje ruta, så parallaxen inte skjuter in grannar över den */
+const PARALLAX_MARGIN = 18;
 /** Hur många objekt framåt i kön som får tävla om en cell */
 const LOOKAHEAD = 4;
 /** Inom detta avstånd räknas två celler som grannar vid storleksspridningen */
@@ -85,7 +87,7 @@ export function seededRandom(seed: number) {
 
 function cells(count: number) {
   // Tillräckligt många kolumner åt båda håll för att rymma alla objekt.
-  const reach = Math.ceil(count / 12) + 2;
+  const reach = Math.ceil(count / 8) + 2;
   const out: { x: number; y: number; score: number }[] = [];
   for (let c = -reach; c <= reach; c++) {
     const rows = Math.abs(c) % 2 === 0 ? EVEN_ROWS : ODD_ROWS;
@@ -177,8 +179,8 @@ export function layoutMood(items: LayoutInput[]): Map<string, LaidOut> {
   });
 
   const overlap = (a: (typeof nodes)[number], b: (typeof nodes)[number]) => {
-    const ox = (a.w + b.w) / 2 - Math.abs(b.x - a.x);
-    const oy = (a.h + b.h) / 2 - Math.abs(b.y - a.y);
+    const ox = (a.w + b.w) / 2 + PARALLAX_MARGIN - Math.abs(b.x - a.x);
+    const oy = (a.h + b.h) / 2 + PARALLAX_MARGIN - Math.abs(b.y - a.y);
     return ox > 0 && oy > 0 ? { ox, oy, area: ox * oy } : null;
   };
 

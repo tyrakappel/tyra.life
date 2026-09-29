@@ -217,14 +217,22 @@ export function MoodBoardView({
       minY = Math.min(minY, p.y - h / 2);
       maxY = Math.max(maxY, p.y + h / 2);
     }
+    // Luft runt innehållet, mer nedtill där "Lägg till media" ligger.
+    const PAD_TOP = 40;
+    const PAD_BOTTOM = 110;
     const fitW = (vp.clientWidth - 120) / (maxX - minX);
-    const fitH = (vp.clientHeight - 160) / (maxY - minY);
+    const fitH = (vp.clientHeight - PAD_TOP - PAD_BOTTOM) / (maxY - minY);
     // Stående skärm (mobil): passa in höjden och låt rymden gå utanför i
     // sidled, annars blir allt pyttesmått. Man sveper för att se resten.
     const portrait = vp.clientHeight > vp.clientWidth;
     const fit = portrait ? Math.min(fitH, fitW * 2.6) : Math.min(fitW, fitH);
     const z = Math.min(1.1, Math.max(MIN_ZOOM, fit));
-    cam.current = { x: -((minX + maxX) / 2) * z, y: -((minY + maxY) / 2) * z, z };
+    cam.current = {
+      x: -((minX + maxX) / 2) * z,
+      // Mitten av ytan mellan paddingarna ligger lite ovanför skärmens mitt.
+      y: -((minY + maxY) / 2) * z + (PAD_TOP - PAD_BOTTOM) / 2,
+      z,
+    };
     apply();
   }, [tiles, apply]);
 
@@ -497,7 +505,7 @@ function MoodTile({
   }, []);
   // Nära objekt glider mer än avlägsna när kameran rör sig.
   const panParallax = (depth - 0.6) * 0.5;
-  const mouseShift = 15 + depth * 35;
+  const mouseShift = 10 + depth * 22;
 
   const startPreview = () => {
     const v = videoRef.current;
@@ -542,7 +550,9 @@ function MoodTile({
           className="group relative block w-full overflow-hidden cursor-zoom-in transition-[filter,transform] duration-500 ease-snap hover:filter-none! hover:scale-[1.03]"
           style={{
             aspectRatio: tileAspect(tile),
-            filter: `brightness(${0.42 + depth * 0.58}) blur(${(1 - depth) * 2.2}px)`,
+            // Bakre lager dämpas bara lätt, de ska kännas längre bort men
+            // fortfarande gå att se och läsa.
+            filter: `brightness(${0.68 + depth * 0.32}) blur(${(1 - depth) * 1.1}px)`,
             boxShadow: `0 ${10 + depth * 30}px ${30 + depth * 60}px rgb(0 0 0 / ${0.35 + depth * 0.3})`,
           }}
         >
@@ -580,8 +590,14 @@ function MoodTile({
                 }}
                 className="absolute inset-0 size-full object-cover pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               />
-              <span className={cn("pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center size-14 rounded-full bg-black/45 text-white/95 ring-1 ring-white/20 backdrop-blur-sm group-hover:opacity-0 transition-opacity duration-300", !loaded && "opacity-0")}>
-                <Play className="size-6 translate-x-0.5" fill="currentColor" />
+              <span
+                className={cn(
+                  // Ljus frostad glasknapp, syns mot både mörka och ljusa bilder.
+                  "pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center w-[22%] min-w-14 max-w-24 aspect-square rounded-full bg-white/25 text-white ring-1 ring-white/40 backdrop-blur-md backdrop-saturate-150 shadow-[0_8px_30px_rgb(0_0_0/0.35)] group-hover:opacity-0 group-hover:scale-90 transition-[opacity,transform] duration-300",
+                  !loaded && "opacity-0"
+                )}
+              >
+                <Play className="size-[42%] translate-x-[6%] drop-shadow-sm" fill="currentColor" />
               </span>
             </>
           )}
