@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api, type MoodBoardSummary, type MoodItem } from "@/lib/api-client";
 import {
+  effectiveDepth,
   hashSeed,
   layoutMood,
   seededRandom,
@@ -64,7 +65,8 @@ function floatFor(id: string) {
 }
 
 function toTile(item: MoodItem): Tile {
-  return { ...item, fullUrl: item.url, ...floatFor(item.id) };
+  // Allt visuellt (storlek, skärpa, ljus, lager) utgår från det justerade djupet.
+  return { ...item, depth: effectiveDepth(item.depth), fullUrl: item.url, ...floatFor(item.id) };
 }
 
 /** Exempelbilder tills användaren laddat upp egna. */
@@ -85,7 +87,7 @@ function placeholderTiles(): Tile[] {
       posterUrl: null,
       width: w,
       height: h,
-      depth: 0.25 + rand() * 0.75,
+      depth: effectiveDepth(0.25 + rand() * 0.75),
       ...floatFor(seed),
     });
   }

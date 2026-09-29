@@ -36,21 +36,21 @@ export type LayoutInput = {
 };
 
 /** Kolumnavstånd i världsenheter (px vid zoom 1) */
-const COL = 300;
+const COL = 340;
 /** Radavstånd */
-const ROW = 235;
-/** Jämna kolumner: fem rader. Udda: fyra, förskjutna en halv rad. */
-const EVEN_ROWS = [-2, -1, 0, 1, 2];
-const ODD_ROWS = [-1.5, -0.5, 0.5, 1.5];
+const ROW = 255;
+/** Jämna kolumner: sju rader. Udda: sex, förskjutna en halv rad. */
+const EVEN_ROWS = [-3, -2, -1, 0, 1, 2, 3];
+const ODD_ROWS = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5];
 /**
  * Höjd straffas lite mer än bredd, så rymden blir en liggande oval ungefär
  * i skärmens proportioner i stället för ett platt band.
  */
-const Y_WEIGHT = 1.45;
+const Y_WEIGHT = 1.3;
 /** Hur långt ut i höjd mittpunkter får hamna */
-const MAX_Y = ROW * 2.3;
+const MAX_Y = ROW * 3.1;
 /** Knuffar går mest i sidled, men höjden får ta en del. */
-const PUSH_Y = 0.85;
+const PUSH_Y = 1;
 const JITTER_X = 85;
 const JITTER_Y = 60;
 /** Så stor del av det minsta objektet får täckas av en granne */
@@ -85,7 +85,7 @@ export function seededRandom(seed: number) {
 
 function cells(count: number) {
   // Tillräckligt många kolumner åt båda håll för att rymma alla objekt.
-  const reach = Math.ceil(count / 8) + 2;
+  const reach = Math.ceil(count / 12) + 2;
   const out: { x: number; y: number; score: number }[] = [];
   for (let c = -reach; c <= reach; c++) {
     const rows = Math.abs(c) % 2 === 0 ? EVEN_ROWS : ODD_ROWS;
@@ -116,6 +116,16 @@ export function tileSize(item: LayoutInput) {
   const landscape = item.width >= item.height;
   const w = (landscape ? 300 : 210) * depthScale(item.depth);
   return { w, h: landscape ? (w * 3) / 4 : (w * 5) / 4 };
+}
+
+/**
+ * Djupet som sparas är jämnt slumpat, vilket gav för många objekt längst
+ * bak (små, mörka, suddiga). Kurvan flyttar fördelningen framåt: ungefär
+ * en femtedel hamnar i djuplagret, resten i mellan och förgrund.
+ */
+export function effectiveDepth(stored: number) {
+  const t = Math.min(1, Math.max(0, (stored - 0.25) / 0.75));
+  return 0.25 + Math.pow(t, 0.55) * 0.75;
 }
 
 /** 0 för de minsta, 1 för de största. */
