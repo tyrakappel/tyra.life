@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api-client";
 import { useNavStore } from "@/lib/nav-store";
 import { cn } from "@/lib/utils";
+import { isModOnly, MOD_KEY_LABEL } from "@/lib/shortcuts";
 import { NewBoardModal } from "./new-board-modal";
 
 type BoardSummary = {
@@ -26,9 +27,7 @@ type Props = {
   onEditSubmit?: (newName: string) => void;
 };
 
-const isMac =
-  typeof window !== "undefined" && /Mac/i.test(window.navigator.userAgent);
-const MOD_KEY = isMac ? "⌘" : "Ctrl+";
+const MOD_KEY = MOD_KEY_LABEL;
 
 export function BoardSwitcher({
   boardId,
@@ -83,7 +82,7 @@ export function BoardSwitcher({
   useEffect(() => {
     if (editing) return;
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+      if (!isModOnly(e)) return;
       const target = document.activeElement;
       // Hoppa över om man skriver i ett textfält
       if (

@@ -55,16 +55,18 @@ function ViewTab({
     <button
       role="tab"
       aria-selected={active}
+      title={label}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg transition-all duration-150 ease-snap text-sm font-medium",
+        "inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg whitespace-nowrap transition-all duration-150 ease-snap text-sm font-medium",
         active
           ? "bg-surface text-fg shadow-sm"
           : "text-fg-muted hover:text-fg hover:bg-surface-hover/60"
       )}
     >
       {icon}
-      <span>{label}</span>
+      {/* På smal skärm bara ikonen, etiketten finns kvar för skärmläsare */}
+      <span className="sr-only sm:not-sr-only">{label}</span>
     </button>
   );
 }

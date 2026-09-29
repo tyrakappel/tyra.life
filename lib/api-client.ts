@@ -162,6 +162,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ name, emoji }),
     }),
+  updateMoodBoard: (id: string, data: { name?: string; emoji?: string | null }) =>
+    req<{ board: MoodBoardSummary }>(`/api/mood-boards/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  deleteMoodBoard: (id: string) =>
+    req(`/api/mood-boards/${id}`, { method: "DELETE" }),
   listMoodItems: (moodBoardId: string) =>
     req<{ items: MoodItem[] }>(`/api/mood-boards/${moodBoardId}/items`),
   createMoodUpload: (contentType: string, bytes: number, posterBytes?: number) =>
@@ -173,6 +180,11 @@ export const api = {
     }>("/api/mood-items/upload-url", {
       method: "POST",
       body: JSON.stringify({ contentType, bytes, posterBytes }),
+    }),
+  moveMoodItem: (id: string, moodBoardId: string) =>
+    req(`/api/mood-items/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ moodBoardId }),
     }),
   deleteMoodItem: (id: string) =>
     req(`/api/mood-items/${id}`, { method: "DELETE" }),

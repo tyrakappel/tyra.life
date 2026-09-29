@@ -151,7 +151,7 @@ export function BoardActionsMenu({
   );
 }
 
-function Action({
+export function Action({
   icon,
   label,
   onClick,

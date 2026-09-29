@@ -13,7 +13,11 @@
  * - Cellerna fylls i ordning efter avstånd från mitten, där höjd väger
  *   tyngre än bredd. Rymden växer alltså utåt från centrum, mest åt vänster
  *   och höger, växelvis åt båda håll.
- * - Varje objekt får en liten förskjutning härledd ur sitt id. Den är stabil
+ * - Stora objekt sprids jämnt: för varje cell väljs, bland de närmaste
+ *   objekten i tur, det som krockar minst med storleken på redan placerade
+ *   grannar. Så hamnar inte två stora bredvid varandra, och ordningen
+ *   rubbas bara lokalt.
+ * - Varje objekt får en förskjutning härledd ur sitt id. Den är stabil
  *   mellan renderingar och gör att rutnätet inte syns.
  * - Till sist en avspänning i två regler, knuffar mest i sidled:
  *   1. Två objekt får inte överlappa mer än MAX_OVERLAP av det minstas yta.
@@ -47,13 +51,17 @@ const Y_WEIGHT = 1.45;
 const MAX_Y = ROW * 2.3;
 /** Knuffar går mest i sidled, men höjden får ta en del. */
 const PUSH_Y = 0.85;
-const JITTER_X = 45;
-const JITTER_Y = 38;
+const JITTER_X = 85;
+const JITTER_Y = 60;
 /** Så stor del av det minsta objektet får täckas av en granne */
 const MAX_OVERLAP = 0.12;
 /** Så stor del av ett objekt som får täckas sammanlagt av det framför */
-const MAX_COVER = 0.22;
+const MAX_COVER = 0.15;
 const RELAX_ITERATIONS = 160;
+/** Hur många objekt framåt i kön som får tävla om en cell */
+const LOOKAHEAD = 4;
+/** Inom detta avstånd räknas två celler som grannar vid storleksspridningen */
+const NEIGHBOR_RADIUS = COL * 1.7;
 
 /** Rymdens halva höjd (mittpunkter). Kameran använder den för att passa in. */
 export const WORLD_HALF_HEIGHT = MAX_Y;
@@ -110,15 +118,46 @@ export function tileSize(item: LayoutInput) {
   return { w, h: landscape ? (w * 3) / 4 : (w * 5) / 4 };
 }
 
+/** 0 för de minsta, 1 för de största. */
+function bigness(depth: number) {
+  return Math.pow(Math.min(1, Math.max(0, (depth - 0.25) / 0.75)), 1.7);
+}
+
+/** Tilldelar celler så att stora objekt inte hamnar intill varandra. */
+function assignSlots(items: LayoutInput[], slots: { x: number; y: number }[]) {
+  const queue = [...items];
+  const placed: { item: LayoutInput; slot: { x: number; y: number } }[] = [];
+  for (const slot of slots) {
+    if (!queue.length) break;
+    const neighbors = placed.filter(
+      (p) => Math.hypot(p.slot.x - slot.x, p.slot.y - slot.y) < NEIGHBOR_RADIUS
+    );
+    let best = 0;
+    let bestScore = Infinity;
+    for (let k = 0; k < Math.min(LOOKAHEAD, queue.length); k++) {
+      const b = bigness(queue[k].depth);
+      const clash = neighbors.reduce((sum, n) => sum + b * bigness(n.item.depth), 0);
+      // Liten straff för att hoppa fram i kön, så ordningen mest behålls.
+      const score = clash + k * 0.08;
+      if (score < bestScore) {
+        bestScore = score;
+        best = k;
+      }
+    }
+    placed.push({ item: queue.splice(best, 1)[0], slot });
+  }
+  return placed;
+}
+
 export function layoutMood(items: LayoutInput[]): Map<string, LaidOut> {
   const slots = cells(items.length);
-  const nodes = items.map((item, i) => {
+  const nodes = assignSlots(items, slots).map(({ item, slot }) => {
     const rand = seededRandom(hashSeed(item.id));
     const { w, h } = tileSize(item);
     return {
       id: item.id,
-      x: slots[i].x + (rand() * 2 - 1) * JITTER_X,
-      y: slots[i].y + (rand() * 2 - 1) * JITTER_Y,
+      x: slot.x + (rand() * 2 - 1) * JITTER_X,
+      y: slot.y + (rand() * 2 - 1) * JITTER_Y,
       w,
       h,
       depth: item.depth,

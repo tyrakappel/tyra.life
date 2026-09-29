@@ -33,7 +33,7 @@ export function ColorThemeMenu() {
         aria-label="Färgtema"
       >
         <Palette className="size-[18px]" />
-        <span>Färgtema</span>
+        <span className="hidden sm:inline">Färgtema</span>
       </button>
 
       <AnimatePresence>

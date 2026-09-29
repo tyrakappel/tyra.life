@@ -93,13 +93,19 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
   // boarden om URL:en saknar en.
   const [moodBoardId, setMoodBoardIdInternal] = useState<string | null>(null);
   useEffect(() => {
-    setMoodBoardIdInternal(new URLSearchParams(window.location.search).get("mood"));
+    setMoodBoardIdInternal(
+      new URLSearchParams(window.location.search).get("mood"),
+    );
   }, []);
   const setMoodBoardId = useCallback((id: string) => {
     setMoodBoardIdInternal(id);
     const params = new URLSearchParams(window.location.search);
     params.set("mood", id);
-    window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}?${params}`,
+    );
   }, []);
 
   const newSectionRef = useRef<HTMLInputElement>(null);
@@ -377,7 +383,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
       className="h-screen flex flex-col bg-bg text-fg"
     >
       {/* Header */}
-      <header className="flex-shrink-0 px-5 py-3 flex items-center gap-3 border-b border-border/60">
+      <header className="flex-shrink-0 px-3 sm:px-5 py-3 flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-2 sm:gap-3 border-b border-border/60">
         <div
           aria-label="Levalife"
           className="flex-shrink-0 inline-flex items-center justify-center size-8 rounded-lg bg-accent shadow-sm shadow-accent/40 ring-1 ring-accent/30"
@@ -394,52 +400,58 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
             </span>
           </div>
         ) : (
-          <div className="flex items-center gap-0.5">
-            <div className="ml-1 mr-3">
+          <>
+            <div className="sm:ml-1 sm:mr-2 shrink-0">
               <ViewToggle view={viewMode} onChange={setViewMode} />
             </div>
-            {viewMode === "mood" && (
-              <MoodBoardSwitcher activeId={moodBoardId} onChange={setMoodBoardId} />
-            )}
-            {viewMode === "plan" && (
-              <>
-                <div className="relative">
-                  <BoardSwitcher
+            {/* På mobil hamnar board-väljaren på en egen rad under flikarna. */}
+            <div className="order-last sm:order-none basis-full sm:basis-auto min-w-0 flex items-center gap-0.5 -ml-2.5 sm:ml-0">
+              {viewMode === "mood" && (
+                <MoodBoardSwitcher
+                  activeId={moodBoardId}
+                  onChange={setMoodBoardId}
+                />
+              )}
+              {viewMode === "plan" && (
+                <>
+                  <div className="relative">
+                    <BoardSwitcher
+                      boardId={board.id}
+                      boardName={board.name}
+                      boardEmoji={board.emoji}
+                      editing={editingName}
+                      onEditCancel={() => setEditingName(false)}
+                      onEditSubmit={(name) => {
+                        store.renameBoard(name);
+                        setEditingName(false);
+                      }}
+                    />
+                    <EmojiPicker
+                      open={pickingEmoji}
+                      currentEmoji={board.emoji}
+                      onSelect={(emoji) => {
+                        api
+                          .updateBoard(board.id, { emoji })
+                          .then(() => window.location.reload())
+                          .catch(console.error);
+                        setPickingEmoji(false);
+                      }}
+                      onClose={() => setPickingEmoji(false)}
+                    />
+                  </div>
+                  <BoardActionsMenu
                     boardId={board.id}
                     boardName={board.name}
                     boardEmoji={board.emoji}
-                    editing={editingName}
-                    onEditCancel={() => setEditingName(false)}
-                    onEditSubmit={(name) => {
-                      store.renameBoard(name);
-                      setEditingName(false);
-                    }}
+                    onRequestRename={() => setEditingName(true)}
+                    onRequestEmoji={() => setPickingEmoji(true)}
                   />
-                  <EmojiPicker
-                    open={pickingEmoji}
-                    currentEmoji={board.emoji}
-                    onSelect={(emoji) => {
-                      api
-                        .updateBoard(board.id, { emoji })
-                        .then(() => window.location.reload())
-                        .catch(console.error);
-                      setPickingEmoji(false);
-                    }}
-                    onClose={() => setPickingEmoji(false)}
-                  />
-                </div>
-                <BoardActionsMenu
-                  boardId={board.id}
-                  boardName={board.name}
-                  boardEmoji={board.emoji}
-                  onRequestRename={() => setEditingName(true)}
-                  onRequestEmoji={() => setPickingEmoji(true)}
-                />
-              </>
-            )}
-          </div>
+                </>
+              )}
+            </div>
+          </>
         )}
-        <div className="ml-auto flex items-center gap-8">
+        <div className="ml-auto flex items-center gap-4 sm:gap-8 shrink-0">
           {viewMode !== "mood" && (
             <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/60">
               <VersionMenu
@@ -452,7 +464,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
           )}
           <div className="flex items-center gap-4">
             <span
-              className="text-xs text-fg-muted/60 font-medium tabular-nums select-none"
+              className="hidden sm:inline text-xs text-fg-muted/60 font-medium tabular-nums select-none"
               title={`Levalife v${APP_VERSION}`}
             >
               v{APP_VERSION}
@@ -490,10 +502,7 @@ export function BoardView({ initialBoard }: { initialBoard: Board }) {
         <LifeCurveView boardId={board.id} />
       ) : viewMode === "mood" ? (
         moodBoardId ? (
-          <MoodBoardView
-            key={moodBoardId}
-            moodBoardId={moodBoardId}
-          />
+          <MoodBoardView key={moodBoardId} moodBoardId={moodBoardId} />
         ) : (
           <div className="flex-1" />
         )

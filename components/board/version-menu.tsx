@@ -103,7 +103,7 @@ export function VersionMenu({ boardId, previewSnapshotId, onPreview }: Props) {
         aria-label="Versioner"
       >
         <History className="size-[18px]" />
-        <span>Versioner</span>
+        <span className="hidden sm:inline">Versioner</span>
       </button>
 
       <AnimatePresence>

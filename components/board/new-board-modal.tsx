@@ -18,6 +18,10 @@ type Props = {
   /** Mood boards har inga mallar, bara namn och emoji. */
   withTemplates?: boolean;
   title?: string;
+  /** För redigering: förifyllda värden och egen knapptext */
+  initialName?: string;
+  initialEmoji?: string | null;
+  submitLabel?: string;
 };
 
 export function NewBoardModal({
@@ -26,6 +30,9 @@ export function NewBoardModal({
   onCreate,
   withTemplates = true,
   title = "Skapa ny board",
+  initialName = "",
+  initialEmoji = null,
+  submitLabel = "Skapa",
 }: Props) {
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState<string | null>(null);
@@ -34,8 +41,8 @@ export function NewBoardModal({
 
   useEffect(() => {
     if (open) {
-      setName("");
-      setEmoji(null);
+      setName(initialName);
+      setEmoji(initialEmoji);
       setBusy(null);
       requestAnimationFrame(() => inputRef.current?.focus());
     }
@@ -165,7 +172,7 @@ export function NewBoardModal({
                 className="flex items-center justify-center gap-2 w-full bg-accent hover:bg-accent/90 text-accent-fg font-semibold text-sm py-3 rounded-lg transition-colors disabled:opacity-40"
               >
                 {busy && <Loader2 className="size-4 animate-spin" />}
-                Skapa
+                {submitLabel}
               </button>
             )}
 

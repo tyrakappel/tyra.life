@@ -3,8 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Play, Plus, Trash2, X } from "lucide-react";
-import { api, type MoodItem } from "@/lib/api-client";
+import {
+  ArrowRightLeft,
+  ChevronDown,
+  Images,
+  Loader2,
+  Play,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { api, type MoodBoardSummary, type MoodItem } from "@/lib/api-client";
 import {
   hashSeed,
   layoutMood,
@@ -185,10 +195,12 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
       minY = Math.min(minY, p.y - h / 2);
       maxY = Math.max(maxY, p.y + h / 2);
     }
-    const fit = Math.min(
-      (vp.clientWidth - 120) / (maxX - minX),
-      (vp.clientHeight - 160) / (maxY - minY)
-    );
+    const fitW = (vp.clientWidth - 120) / (maxX - minX);
+    const fitH = (vp.clientHeight - 160) / (maxY - minY);
+    // Stående skärm (mobil): passa in höjden och låt rymden gå utanför i
+    // sidled, annars blir allt pyttesmått. Man sveper för att se resten.
+    const portrait = vp.clientHeight > vp.clientWidth;
+    const fit = portrait ? Math.min(fitH, fitW * 2.6) : Math.min(fitW, fitH);
     const z = Math.min(1.1, Math.max(MIN_ZOOM, fit));
     cam.current = { x: -((minX + maxX) / 2) * z, y: -((minY + maxY) / 2) * z, z };
     apply();
@@ -297,6 +309,17 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
 
   const openTile = tiles?.find((t) => t.id === openId) ?? null;
 
+  // Boards att flytta till hämtas när modalen öppnas, så nyss skapade boards
+  // också finns med.
+  const [moveTargets, setMoveTargets] = useState<MoodBoardSummary[]>([]);
+  useEffect(() => {
+    if (!openId || isPlaceholder) return;
+    api
+      .listMoodBoards()
+      .then(({ boards }) => setMoveTargets(boards.filter((b) => b.id !== moodBoardId)))
+      .catch(console.error);
+  }, [openId, isPlaceholder, moodBoardId]);
+
   return (
     <div
       ref={viewportRef}
@@ -323,6 +346,13 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
           />
         ))}
       </div>
+
+      {/* Medan listan hämtas. Själva bilderna har sedan egna skelett. */}
+      {!tiles && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <Loader2 className="size-6 animate-spin text-fg-muted/60" />
+        </div>
+      )}
 
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2.5">
         {isPlaceholder && (
@@ -354,6 +384,16 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
                 setTiles((ts) => (ts ?? []).filter((t) => t.id !== id));
               }
         }
+        moveTargets={moveTargets}
+        onMove={
+          isPlaceholder
+            ? undefined
+            : async (id, targetId) => {
+                await api.moveMoodItem(id, targetId);
+                setOpenId(null);
+                setTiles((ts) => (ts ?? []).filter((t) => t.id !== id));
+              }
+        }
       />
       <MoodUploadModal
         moodBoardId={moodBoardId}
@@ -380,6 +420,14 @@ function MoodTile({
   const { depth } = tile;
   const isVideo = tile.kind === "video";
   const videoRef = useRef<HTMLVideoElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  // Skelett tills bilden är laddad, sedan mjuk intoning. Cachade bilder kan
+  // vara klara redan innan onLoad hinner kopplas, så kolla complete direkt.
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img?.complete && img.naturalWidth > 0) setLoaded(true);
+  }, []);
   // Nära objekt glider mer än avlägsna när kameran rör sig.
   const panParallax = (depth - 0.6) * 0.5;
   const mouseShift = 15 + depth * 35;
@@ -431,13 +479,20 @@ function MoodTile({
             boxShadow: `0 ${10 + depth * 30}px ${30 + depth * 60}px rgb(0 0 0 / ${0.35 + depth * 0.3})`,
           }}
         >
+          {!loaded && <span aria-hidden className="mood-skeleton absolute inset-0" />}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            ref={imgRef}
             src={isVideo ? (tile.posterUrl ?? "") : tile.url}
             alt=""
             draggable={false}
             loading="lazy"
-            className="size-full object-cover select-none pointer-events-none"
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            className={cn(
+              "size-full object-cover select-none pointer-events-none transition-[opacity,transform,filter] duration-700 ease-snap",
+              loaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-[1.04] blur-sm"
+            )}
           />
           {isVideo && (
             <>
@@ -458,7 +513,7 @@ function MoodTile({
                 }}
                 className="absolute inset-0 size-full object-cover pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               />
-              <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center size-14 rounded-full bg-black/45 text-white/95 ring-1 ring-white/20 backdrop-blur-sm group-hover:opacity-0 transition-opacity duration-300">
+              <span className={cn("pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center size-14 rounded-full bg-black/45 text-white/95 ring-1 ring-white/20 backdrop-blur-sm group-hover:opacity-0 transition-opacity duration-300", !loaded && "opacity-0")}>
                 <Play className="size-6 translate-x-0.5" fill="currentColor" />
               </span>
             </>
@@ -474,49 +529,72 @@ function MoodTile({
   );
 }
 
+type LightboxAction = "delete" | "move" | null;
+
 function MediaLightbox({
   tile,
   onClose,
   onDelete,
+  moveTargets,
+  onMove,
 }: {
   tile: Tile | null;
   onClose: () => void;
   onDelete?: (id: string) => Promise<void>;
+  /** Övriga mood boards som objektet kan flyttas till */
+  moveTargets?: MoodBoardSummary[];
+  onMove?: (id: string, targetId: string) => Promise<void>;
 }) {
   const [mounted, setMounted] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [action, setAction] = useState<LightboxAction>(null);
+  const [busy, setBusy] = useState(false);
+  const [targetId, setTargetId] = useState<string | null>(null);
+  const [selectOpen, setSelectOpen] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Ny bild i modalen: börja alltid utan öppen bekräftelse.
+  // Nytt objekt i modalen: börja alltid utan öppen åtgärd.
   useEffect(() => {
-    setConfirming(false);
-    setDeleting(false);
+    setAction(null);
+    setBusy(false);
+    setTargetId(null);
+    setSelectOpen(false);
   }, [tile?.id]);
 
-  const handleDelete = async () => {
-    if (!tile || !onDelete) return;
-    setDeleting(true);
+  const run = async (fn: () => Promise<void>, failMsg: string) => {
+    setBusy(true);
     try {
-      await onDelete(tile.id);
+      await fn();
     } catch (err) {
       console.error(err);
-      alert("Kunde inte ta bort.");
-      setDeleting(false);
+      alert(
+        err instanceof Error && err.message.startsWith("409")
+          ? "Den finns redan på det mood boardet."
+          : failMsg
+      );
+      setBusy(false);
     }
   };
+
+  const handleDelete = () =>
+    tile && onDelete && run(() => onDelete(tile.id), "Kunde inte ta bort.");
+  const handleMove = () =>
+    tile &&
+    onMove &&
+    targetId &&
+    run(() => onMove(tile.id, targetId), "Kunde inte flytta.");
 
   useEffect(() => {
     if (!tile) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || deleting) return;
-      // Esc stänger först bekräftelsen, sedan modalen.
-      if (confirming) setConfirming(false);
+      if (e.key !== "Escape" || busy) return;
+      // Esc stänger först listan, sedan åtgärden, sist modalen.
+      if (selectOpen) setSelectOpen(false);
+      else if (action) setAction(null);
       else onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [tile, onClose, confirming, deleting]);
+  }, [tile, onClose, action, busy, selectOpen]);
 
   if (!mounted) return null;
 
@@ -529,6 +607,9 @@ function MediaLightbox({
     className: "max-w-[90vw] max-h-[85vh] object-contain shadow-2xl",
     style: tile ? { aspectRatio: `${tile.width} / ${tile.height}` } : undefined,
   };
+
+  const noun = tile?.kind === "video" ? "videon" : "bilden";
+  const target = moveTargets?.find((b) => b.id === targetId) ?? null;
 
   // Portal till body: skalet har transform från sin intro-animation, och då
   // blir position: fixed relativt skalet i stället för viewporten.
@@ -569,53 +650,129 @@ function MediaLightbox({
             <motion.img {...mediaProps} src={tile.fullUrl} alt="" />
           )}
 
-          {onDelete && (
+          {(onDelete || onMove) && (
             <div
               className="absolute bottom-5 right-5 z-10 flex items-center gap-2"
               onClick={(e) => e.stopPropagation()}
             >
-              <AnimatePresence>
-                {confirming && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 8 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex items-center gap-1 pl-4 pr-1 h-10 rounded-full bg-white/10 backdrop-blur-md ring-1 ring-white/15"
-                  >
-                    <span className="text-sm text-white/90 mr-2">
-                      {tile.kind === "video" ? "Ta bort videon?" : "Ta bort bilden?"}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setConfirming(false)}
-                      disabled={deleting}
-                      className="h-8 px-3 rounded-full text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40"
-                    >
+              <AnimatePresence mode="wait">
+                {action === "delete" && (
+                  <ActionPill key="delete">
+                    <span className="text-sm text-white/90 mr-2">Ta bort {noun}?</span>
+                    <PillButton onClick={() => setAction(null)} disabled={busy}>
                       Avbryt
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm font-semibold bg-danger text-white hover:bg-danger/90 transition-colors disabled:opacity-60"
-                    >
-                      {deleting && <Loader2 className="size-3.5 animate-spin" />}
+                    </PillButton>
+                    <PillButton primary danger onClick={handleDelete} disabled={busy}>
+                      {busy && <Loader2 className="size-3.5 animate-spin" />}
                       Ta bort
-                    </button>
-                  </motion.div>
+                    </PillButton>
+                  </ActionPill>
+                )}
+
+                {action === "move" && (
+                  <ActionPill key="move">
+                    {moveTargets?.length ? (
+                      <>
+                        <span className="text-sm text-white/90 mr-1">Flytta till</span>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setSelectOpen((v) => !v)}
+                            disabled={busy}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 h-8 pl-2.5 pr-2 rounded-full text-sm font-medium text-white transition-colors disabled:opacity-40",
+                              selectOpen ? "bg-white/15" : "bg-white/5 hover:bg-white/10"
+                            )}
+                          >
+                            {target ? (
+                              <>
+                                <BoardGlyph emoji={target.emoji} />
+                                <span className="max-w-[12rem] truncate">{target.name}</span>
+                              </>
+                            ) : (
+                              <span className="text-white/60">Välj mood board</span>
+                            )}
+                            <ChevronDown
+                              className={cn(
+                                "size-3.5 text-white/60 transition-transform duration-150",
+                                selectOpen && "rotate-180"
+                              )}
+                            />
+                          </button>
+                          <AnimatePresence>
+                            {selectOpen && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 4, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                                transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                                className="absolute right-0 bottom-full mb-2 min-w-[16rem] p-1.5 rounded-xl bg-neutral-900/95 ring-1 ring-white/10 shadow-2xl backdrop-blur-md"
+                              >
+                                <div className="px-2.5 pt-1 pb-1.5 text-[11px] font-semibold text-white/50 uppercase tracking-wider">
+                                  Dina mood boards
+                                </div>
+                                <div className="max-h-64 overflow-y-auto scrollbar-thin space-y-0.5">
+                                  {moveTargets.map((b) => (
+                                    <button
+                                      key={b.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setTargetId(b.id);
+                                        setSelectOpen(false);
+                                      }}
+                                      className={cn(
+                                        "relative flex items-center gap-2.5 w-full pl-3 pr-2.5 py-2 rounded-lg text-left text-sm transition-colors hover:bg-white/10",
+                                        b.id === targetId ? "text-white font-semibold" : "text-white/85"
+                                      )}
+                                    >
+                                      {b.id === targetId && (
+                                        <span
+                                          aria-hidden
+                                          className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-accent"
+                                        />
+                                      )}
+                                      <BoardGlyph emoji={b.emoji} />
+                                      <span className="flex-1 truncate">{b.name}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                        <PillButton onClick={() => setAction(null)} disabled={busy}>
+                          Avbryt
+                        </PillButton>
+                        <PillButton primary onClick={handleMove} disabled={busy || !targetId}>
+                          {busy && <Loader2 className="size-3.5 animate-spin" />}
+                          Flytta
+                        </PillButton>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm text-white/80 mr-2">
+                          Skapa ett till mood board för att kunna flytta
+                        </span>
+                        <PillButton onClick={() => setAction(null)}>Stäng</PillButton>
+                      </>
+                    )}
+                  </ActionPill>
                 )}
               </AnimatePresence>
-              {!confirming && (
-                <button
-                  type="button"
-                  onClick={() => setConfirming(true)}
-                  aria-label="Ta bort"
-                  title="Ta bort"
-                  className="inline-flex items-center justify-center size-10 rounded-full text-white/60 hover:text-danger hover:bg-white/10 transition-colors"
-                >
-                  <Trash2 className="size-5" />
-                </button>
+
+              {!action && (
+                <>
+                  {onMove && (
+                    <IconAction label="Flytta till annat mood board" onClick={() => setAction("move")}>
+                      <ArrowRightLeft className="size-5" />
+                    </IconAction>
+                  )}
+                  {onDelete && (
+                    <IconAction label="Ta bort" danger onClick={() => setAction("delete")}>
+                      <Trash2 className="size-5" />
+                    </IconAction>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -623,5 +780,88 @@ function MediaLightbox({
       )}
     </AnimatePresence>,
     document.body
+  );
+}
+
+function ActionPill({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 8 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 8 }}
+      transition={{ duration: 0.15 }}
+      className="flex items-center gap-1 pl-4 pr-1 h-10 rounded-full bg-white/10 backdrop-blur-md ring-1 ring-white/15"
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function PillButton({
+  children,
+  onClick,
+  disabled,
+  primary,
+  danger,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  primary?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-sm transition-colors disabled:opacity-40",
+        primary
+          ? danger
+            ? "font-semibold bg-danger text-white hover:bg-danger/90"
+            : "font-semibold bg-accent text-accent-fg hover:bg-accent/90"
+          : "text-white/70 hover:text-white hover:bg-white/10"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function IconAction({
+  children,
+  label,
+  onClick,
+  danger,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "inline-flex items-center justify-center size-10 rounded-full text-white/60 hover:bg-white/10 transition-colors",
+        danger ? "hover:text-danger" : "hover:text-white"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function BoardGlyph({ emoji }: { emoji: string | null }) {
+  return emoji ? (
+    <span className="text-base leading-none w-5 text-center shrink-0">{emoji}</span>
+  ) : (
+    <span className="inline-flex items-center justify-center size-5 rounded-md bg-white/10 text-white/70 shrink-0">
+      <Images className="size-3" />
+    </span>
   );
 }
