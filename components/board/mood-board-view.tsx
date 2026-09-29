@@ -6,10 +6,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRightLeft,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Images,
   Loader2,
   Play,
   Plus,
+  Smartphone,
   Trash2,
   X,
 } from "lucide-react";
@@ -24,6 +27,7 @@ import {
   type LaidOut,
 } from "@/lib/mood-layout";
 import { MoodUploadModal } from "./mood-upload-modal";
+import { useDeviceTilt } from "./use-device-tilt";
 
 /**
  * Mood Board: bilder och videor som svävar i en mörk rymd.
@@ -106,6 +110,7 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
+  const tilt = useDeviceTilt(viewportRef);
   const cam = useRef({ x: 0, y: 0, z: 1 });
   const dragged = useRef(false);
   const cameraReady = useRef(false);
@@ -309,6 +314,29 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
 
   const openTile = tiles?.find((t) => t.id === openId) ?? null;
 
+  // Bläddringsordning i förstoringen: som man ser rymden, vänster till
+  // höger. Objekt i nästan samma kolumn tas uppifrån och ned.
+  const readingOrder = useMemo(() => {
+    const ids = (tiles ?? []).map((t) => t.id);
+    const col = (id: string) => Math.round((layout.get(id)?.x ?? 0) / 120);
+    return ids.sort(
+      (a, b) =>
+        col(a) - col(b) || (layout.get(a)?.y ?? 0) - (layout.get(b)?.y ?? 0)
+    );
+  }, [tiles, layout]);
+
+  const stepOpen = useCallback(
+    (dir: -1 | 1) => {
+      setOpenId((cur) => {
+        const i = cur ? readingOrder.indexOf(cur) : -1;
+        if (i < 0) return cur;
+        const n = readingOrder.length;
+        return readingOrder[(i + dir + n) % n];
+      });
+    },
+    [readingOrder]
+  );
+
   // Boards att flytta till hämtas när modalen öppnas, så nyss skapade boards
   // också finns med.
   const [moveTargets, setMoveTargets] = useState<MoodBoardSummary[]>([]);
@@ -360,6 +388,17 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
             Exempelbilder, lägg till egna
           </span>
         )}
+        {tilt.status === "needs-permission" && (
+          <button
+            type="button"
+            onClick={tilt.request}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-surface/70 border border-border text-xs font-medium text-fg-muted backdrop-blur-md active:scale-[0.97] transition-all"
+          >
+            <Smartphone className="size-3.5" />
+            Aktivera rörelse
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setUploadOpen(true)}
@@ -373,6 +412,7 @@ export function MoodBoardView({ moodBoardId }: { moodBoardId: string }) {
 
       <MediaLightbox
         tile={openTile}
+        onStep={readingOrder.length > 1 ? stepOpen : undefined}
         onClose={() => setOpenId(null)}
         // Exempelbilderna finns inte i databasen och går inte att radera.
         onDelete={
@@ -534,6 +574,7 @@ type LightboxAction = "delete" | "move" | null;
 function MediaLightbox({
   tile,
   onClose,
+  onStep,
   onDelete,
   moveTargets,
   onMove,
@@ -544,6 +585,8 @@ function MediaLightbox({
   /** Övriga mood boards som objektet kan flyttas till */
   moveTargets?: MoodBoardSummary[];
   onMove?: (id: string, targetId: string) => Promise<void>;
+  /** Bläddra till föregående (-1) eller nästa (1). Saknas om bara ett objekt. */
+  onStep?: (dir: -1 | 1) => void;
 }) {
   const [mounted, setMounted] = useState(false);
   const [action, setAction] = useState<LightboxAction>(null);
@@ -586,7 +629,14 @@ function MediaLightbox({
   useEffect(() => {
     if (!tile) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || busy) return;
+      if (busy) return;
+      // Pilar bläddrar, men inte medan en åtgärd är öppen.
+      if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && !action && onStep) {
+        e.preventDefault();
+        onStep(e.key === "ArrowLeft" ? -1 : 1);
+        return;
+      }
+      if (e.key !== "Escape") return;
       // Esc stänger först listan, sedan åtgärden, sist modalen.
       if (selectOpen) setSelectOpen(false);
       else if (action) setAction(null);
@@ -594,7 +644,29 @@ function MediaLightbox({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [tile, onClose, action, busy, selectOpen]);
+  }, [tile, onClose, onStep, action, busy, selectOpen]);
+
+  // Svep i sidled på mobil. Kort, tydligt horisontellt svep räknas, allt
+  // annat (tryck, scroll i videokontroller) lämnas i fred.
+  const swipe = useRef<{ x: number; y: number; t: number } | null>(null);
+  // Klicket som följer på ett svep ska inte stänga modalen.
+  const justSwiped = useRef(false);
+  const onSwipeStart = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") return;
+    swipe.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+  };
+  const onSwipeEnd = (e: React.PointerEvent) => {
+    const s = swipe.current;
+    swipe.current = null;
+    if (!s || !onStep || action) return;
+    const dx = e.clientX - s.x;
+    const dy = e.clientY - s.y;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - s.t < 600) {
+      justSwiped.current = true;
+      setTimeout(() => (justSwiped.current = false), 400);
+      onStep(dx > 0 ? -1 : 1);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -617,16 +689,24 @@ function MediaLightbox({
     <AnimatePresence>
       {tile && (
         <motion.div
-          key={tile.id}
+          key="lightbox"
           role="dialog"
           aria-modal="true"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          onClick={onClose}
+          onClick={() => !justSwiped.current && onClose()}
+          onPointerDown={onSwipeStart}
+          onPointerUp={onSwipeEnd}
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/90 p-8"
         >
+          {onStep && (
+            <>
+              <StepButton dir={-1} onStep={onStep} />
+              <StepButton dir={1} onStep={onStep} />
+            </>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -639,6 +719,7 @@ function MediaLightbox({
             // Klicket som öppnade modalen räknas som användargest, så
             // autoplay med ljud tillåts.
             <motion.video
+              key={tile.id}
               {...mediaProps}
               src={tile.fullUrl}
               poster={tile.posterUrl ?? undefined}
@@ -647,7 +728,7 @@ function MediaLightbox({
               playsInline
             />
           ) : (
-            <motion.img {...mediaProps} src={tile.fullUrl} alt="" />
+            <motion.img key={tile.id} {...mediaProps} src={tile.fullUrl} alt="" />
           )}
 
           {(onDelete || onMove) && (
@@ -780,6 +861,28 @@ function MediaLightbox({
       )}
     </AnimatePresence>,
     document.body
+  );
+}
+
+function StepButton({ dir, onStep }: { dir: -1 | 1; onStep: (dir: -1 | 1) => void }) {
+  const label = dir === -1 ? "Föregående" : "Nästa";
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onStep(dir);
+      }}
+      aria-label={label}
+      title={`${label} (${dir === -1 ? "←" : "→"})`}
+      className={cn(
+        // Dolda på touch, där man sveper i stället.
+        "hidden sm:inline-flex absolute top-1/2 -translate-y-1/2 z-10 items-center justify-center size-11 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors",
+        dir === -1 ? "left-4" : "right-4"
+      )}
+    >
+      {dir === -1 ? <ChevronLeft className="size-7" /> : <ChevronRight className="size-7" />}
+    </button>
   );
 }
 

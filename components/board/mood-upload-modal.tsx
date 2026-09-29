@@ -136,7 +136,7 @@ export function MoodUploadModal({
         }
         update(item.id, {
           status: "error",
-          error: err instanceof Error ? err.message : "Något gick fel",
+          error: friendlyError(err),
         });
       }
     }
@@ -193,6 +193,8 @@ export function MoodUploadModal({
 
   const doneCount = queue.filter((q) => q.status === "done").length;
   const duplicateCount = queue.filter((q) => q.status === "duplicate").length;
+  const errorCount = queue.filter((q) => q.status === "error").length;
+  const firstError = queue.find((q) => q.status === "error")?.error;
 
   if (!mounted) return null;
 
@@ -289,8 +291,18 @@ export function MoodUploadModal({
                     {duplicateCount > 0 &&
                       `, ${duplicateCount} fanns redan`}
                   </span>
-                  {!busy && <span>Allt har placerats i din rymd</span>}
+                  {!busy && errorCount > 0 && (
+                    <span className="text-danger">
+                      {errorCount === 1 ? "1 fil" : `${errorCount} filer`} misslyckades
+                    </span>
+                  )}
+                  {!busy && errorCount === 0 && doneCount > 0 && (
+                    <span>Allt har placerats i din rymd</span>
+                  )}
                 </div>
+                {!busy && firstError && (
+                  <p className="mb-2 text-xs text-danger">{firstError}</p>
+                )}
                 <ul className="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto scrollbar-thin">
                   {queue.map((q) => (
                     <QueueThumb key={q.id} item={q} />
@@ -368,4 +380,21 @@ function QueueThumb({ item }: { item: QueueItem }) {
       )}
     </li>
   );
+}
+
+/**
+ * API-fel kommer som "503: {\"error\":\"...\"}". Plocka ut meddelandet så
+ * användaren ser en mening, inte JSON.
+ */
+function friendlyError(err: unknown) {
+  if (!(err instanceof Error)) return "Något gick fel";
+  const match = err.message.match(/^\d{3}: (.*)$/s);
+  if (!match) return err.message;
+  try {
+    const body = JSON.parse(match[1]) as { error?: string };
+    if (body.error) return body.error;
+  } catch {
+    // inte JSON, använd texten som den är
+  }
+  return match[1] || "Något gick fel";
 }
