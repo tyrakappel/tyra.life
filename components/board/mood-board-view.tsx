@@ -415,16 +415,6 @@ export function MoodBoardView({
         ))}
       </div>
 
-      {/* Mjuk tonad kant i sidled, antyder att rymden fortsätter utanför. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 w-16 sm:w-28 z-[150] bg-gradient-to-r from-bg to-transparent"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 w-16 sm:w-28 z-[150] bg-gradient-to-l from-bg to-transparent"
-      />
-
       {/* Medan listan hämtas. Själva bilderna har sedan egna skelett. */}
       {!tiles && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
