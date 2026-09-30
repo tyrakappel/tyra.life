@@ -58,8 +58,11 @@ const MAX_OVERLAP = 0.1;
 /** Så stor del av ett objekt som får täckas sammanlagt av det framför */
 const MAX_COVER = 0.12;
 const RELAX_ITERATIONS = 260;
-/** Marginal runt varje ruta, så parallaxen inte skjuter in grannar över den */
-const PARALLAX_MARGIN = 18;
+/**
+ * Marginal runt varje ruta, så parallaxen inte skjuter in grannar över den.
+ * Täcker panorering (max ±~10 px per lager) och muspekaren (±~16 px).
+ */
+const PARALLAX_MARGIN = 30;
 /** Hur många objekt framåt i kön som får tävla om en cell */
 const LOOKAHEAD = 4;
 /** Inom detta avstånd räknas två celler som grannar vid storleksspridningen */

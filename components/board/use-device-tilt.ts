@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Tilt på mobil: telefonens lutning skrivs som --mx/--my (-0.5..0.5) på
+ * Tilt på mobil: telefonens lutning skrivs som --mx/--my (-1.2..1.2) på
  * elementet, samma variabler som muspekaren styr på datorn. Lagren i rymden
  * glider då mot varandra när man lutar telefonen.
  *
@@ -19,9 +19,14 @@ type OrientationWithPermission = typeof DeviceOrientationEvent & {
 };
 
 /** Grader lutning som ger fullt utslag */
-const RANGE = 28;
+const RANGE = 16;
+/**
+ * Max utslag. Muspekaren går till ±0.5; tilt får drygt dubbla, eftersom en
+ * telefon är liten och rörelsen annars knappt märks.
+ */
+const MAX = 1.2;
 
-const clamp = (v: number) => Math.max(-0.5, Math.min(0.5, v));
+const clamp = (v: number) => Math.max(-MAX, Math.min(MAX, v));
 
 export function useDeviceTilt(target: React.RefObject<HTMLElement | null>) {
   const [status, setStatus] = useState<TiltStatus>("unsupported");

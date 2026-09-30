@@ -519,8 +519,13 @@ function MoodTile({
     if (img?.complete && img.naturalWidth > 0) setLoaded(true);
   }, []);
   // Nära objekt glider mer än avlägsna när kameran rör sig.
+  // Parallax vid panorering växer med hur långt man dragit, så den kläms
+  // till några pixlar. Annars glider lagren hundratals px in över varandra.
   const panParallax = (depth - 0.6) * 0.5;
+  const panMax = Math.abs(depth - 0.6) * 24;
   const mouseShift = 10 + depth * 22;
+  const pan = (v: string) =>
+    `clamp(${-panMax}px, calc(var(${v}, 0) * ${panParallax}px), ${panMax}px)`;
 
   const startPreview = () => {
     const v = videoRef.current;
@@ -543,7 +548,7 @@ function MoodTile({
         top: pos.y,
         width: tileWidth(tile),
         zIndex: Math.round(depth * 100),
-        transform: `translate(-50%, -50%) translate3d(calc(var(--cx, 0) * ${panParallax}px + var(--mx, 0) * ${-mouseShift}px), calc(var(--cy, 0) * ${panParallax}px + var(--my, 0) * ${-mouseShift}px), 0)`,
+        transform: `translate(-50%, -50%) translate3d(calc(${pan("--cx")} + var(--mx, 0) * ${-mouseShift}px), calc(${pan("--cy")} + var(--my, 0) * ${-mouseShift}px), 0)`,
         // left/top glider när layouten räknas om, t.ex. efter en radering.
         transition:
           "transform 0.9s cubic-bezier(0.22, 1, 0.36, 1), left 0.9s cubic-bezier(0.22, 1, 0.36, 1), top 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
